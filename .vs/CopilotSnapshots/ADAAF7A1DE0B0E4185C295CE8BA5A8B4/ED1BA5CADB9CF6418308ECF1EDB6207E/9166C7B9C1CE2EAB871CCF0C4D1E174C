@@ -1,0 +1,1064 @@
+﻿@page "/ai-model"
+@inject NavigationManager Navigation
+@inject HospitalTriageAI.Services.IAuthService AuthService
+@inject HospitalTriageAI.Services.IModelTrainingService ModelTrainingService
+
+<div class="ai-model-page">
+    @if (!AuthService.IsAdmin)
+    {
+        <div class="access-denied">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <h2>Access Denied</h2>
+            <p>Admin authentication required to access AI Model Management.</p>
+            <button class="btn btn-primary" @onclick="@(() => Navigation.NavigateTo("/admin"))">
+                Go to Admin Login
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="page-header">
+            <div class="header-content">
+                <h1>AI Model Management</h1>
+                <p>Train, manage, and monitor the triage prediction model</p>
+            </div>
+        </div>
+
+        <!-- Model Status Card -->
+        <div class="model-status-card">
+            <div class="status-header">
+                <div class="status-icon @(_modelInfo.IsLoaded ? "active" : "inactive")">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <div class="status-info">
+                    <h3>Model Status</h3>
+                    <span class="status-badge @(_modelInfo.IsLoaded ? "badge-active" : "badge-warning")">
+                        @(_modelInfo.IsLoaded ? "Trained & Ready" : "Not Trained")
+                    </span>
+                </div>
+            </div>
+
+            @if (_modelInfo.IsLoaded)
+            {
+                <div class="model-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Trained On</span>
+                        <span class="detail-value">@(_modelInfo.TrainedDate?.ToString("MMM dd, yyyy HH:mm") ?? "Unknown")</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Training Records</span>
+                        <span class="detail-value">@(_modelInfo.TrainingRecords?.ToString("N0") ?? "Unknown")</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Model Location</span>
+                        <span class="detail-value path">@_modelInfo.ModelPath</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="no-model-info">
+                    <p>No trained model found. Train a model using CSV data to enable AI-powered triage predictions.</p>
+                    <p class="hint">Until trained, the system uses rule-based predictions.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Action Cards Grid -->
+        <div class="action-grid">
+            <!-- Train Model Card -->
+            <div class="action-card">
+                <div class="card-icon train">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="17 1 21 5 17 9"/>
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                        <polyline points="7 23 3 19 7 15"/>
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                    </svg>
+                </div>
+                <h3>Train New Model</h3>
+                <p>Upload CSV data to train or retrain the AI triage model</p>
+                <button class="btn btn-primary" @onclick="HandleTrainModel">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Upload CSV & Train
+                </button>
+            </div>
+
+            <!-- Download Sample Card -->
+            <div class="action-card">
+                <div class="card-icon sample">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                </div>
+                <h3>Sample CSV Format</h3>
+                <p>Download a sample CSV file with the correct format</p>
+                <button class="btn btn-outline" @onclick="DownloadSampleCsv">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download Sample
+                </button>
+            </div>
+
+            <!-- Model Info Card -->
+            <div class="action-card">
+                <div class="card-icon info">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                </div>
+                <h3>How It Works</h3>
+                <p>Learn about the AI model and prediction algorithm</p>
+                <button class="btn btn-outline" @onclick="@(() => _showInfoModal = true)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    Learn More
+                </button>
+            </div>
+        </div>
+
+        <!-- CSV Format Info -->
+        <div class="csv-info-section">
+            <h3>CSV Data Format Requirements</h3>
+            <div class="csv-table-container">
+                <table class="csv-table">
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Example</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>Patient_ID</code></td>
+                            <td>String</td>
+                            <td>P001</td>
+                            <td>Unique patient identifier</td>
+                        </tr>
+                        <tr>
+                            <td><code>Age</code></td>
+                            <td>Integer</td>
+                            <td>45</td>
+                            <td>Patient age in years</td>
+                        </tr>
+                        <tr>
+                            <td><code>Gender</code></td>
+                            <td>String</td>
+                            <td>Male/Female</td>
+                            <td>Patient gender</td>
+                        </tr>
+                        <tr>
+                            <td><code>Symptoms</code></td>
+                            <td>String</td>
+                            <td>Chest pain, Fever</td>
+                            <td>Comma-separated symptoms</td>
+                        </tr>
+                        <tr>
+                            <td><code>Blood_Pressure</code></td>
+                            <td>String</td>
+                            <td>120/80</td>
+                            <td>Systolic/Diastolic</td>
+                        </tr>
+                        <tr>
+                            <td><code>Heart_Rate</code></td>
+                            <td>Integer</td>
+                            <td>72</td>
+                            <td>Beats per minute</td>
+                        </tr>
+                        <tr>
+                            <td><code>Temperature</code></td>
+                            <td>Float</td>
+                            <td>37.5</td>
+                            <td>Body temperature (°C)</td>
+                        </tr>
+                        <tr>
+                            <td><code>Pre_Existing_Conditions</code></td>
+                            <td>String</td>
+                            <td>Diabetes, Hypertension</td>
+                            <td>Comma-separated conditions</td>
+                        </tr>
+                        <tr>
+                            <td><code>Risk_Level</code></td>
+                            <td>String</td>
+                            <td>Low/Medium/High/Critical</td>
+                            <td>Target triage level</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* Training Modal *@
+        @if (_showTrainingModal)
+        {
+            <div class="modal-overlay" @onclick="CloseTrainingModal">
+                <div class="modal-content" @onclick:stopPropagation="true">
+                    <div class="modal-header">
+                        <h2>Train AI Model</h2>
+                        <button class="modal-close" @onclick="CloseTrainingModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        @if (_trainingCompleted)
+                        {
+                            <div class="training-success">
+                                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                <h3>Training Completed!</h3>
+                                <p>@_trainingMessage</p>
+                                @if (_trainingAccuracy.HasValue)
+                                {
+                                    <div class="accuracy-display">
+                                        <span class="accuracy-label">Model Accuracy</span>
+                                        <span class="accuracy-value">@(_trainingAccuracy.Value.ToString("P1"))</span>
+                                    </div>
+                                }
+                                @if (_trainingDuration.HasValue)
+                                {
+                                    <p class="duration">Training completed in @(_trainingDuration.Value.TotalSeconds.ToString("F1"))s</p>
+                                }
+                                <button class="btn btn-primary" @onclick="CloseAndRefresh">Done</button>
+                            </div>
+                        }
+                        else if (_isTraining)
+                        {
+                            <div class="training-progress">
+                                <div class="progress-spinner"></div>
+                                <p class="progress-text">@_trainingProgress</p>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: @(_progressPercent)%"></div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="upload-section">
+                                <div class="upload-icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                </div>
+                                <p>Select a CSV file to train the AI model</p>
+                                <p class="hint">Minimum 10 records required for training</p>
+                                
+                                @if (!string.IsNullOrEmpty(_uploadError))
+                                {
+                                    <div class="alert-error">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12" y2="12"/>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                        </svg>
+                                        @_uploadError
+                                    </div>
+                                }
+                                
+                                <button class="btn btn-primary btn-large" @onclick="SelectCsvFile">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14,2 14,8 20,8"/>
+                                    </svg>
+                                    Select CSV File
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* Info Modal *@
+        @if (_showInfoModal)
+        {
+            <div class="modal-overlay" @onclick="@(() => _showInfoModal = false)">
+                <div class="modal-content modal-large" @onclick:stopPropagation="true">
+                    <div class="modal-header">
+                        <h2>How the AI Model Works</h2>
+                        <button class="modal-close" @onclick="@(() => _showInfoModal = false)">&times;</button>
+                    </div>
+                    <div class="modal-body info-modal-body">
+                        <div class="info-section">
+                            <h4>🤖 Machine Learning Algorithm</h4>
+                            <p>The triage model uses <strong>ML.NET's SDCA Maximum Entropy classifier</strong>, a multi-class classification algorithm optimized for healthcare triage scenarios.</p>
+                        </div>
+                        
+                        <div class="info-section">
+                            <h4>📊 Features Used for Prediction</h4>
+                            <ul>
+                                <li>Patient age and gender</li>
+                                <li>Symptom count and severity score</li>
+                                <li>Vital signs (BP, heart rate, temperature)</li>
+                                <li>Pre-existing conditions (diabetes, heart disease, hypertension)</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="info-section">
+                            <h4>🎯 Prediction Categories</h4>
+                            <div class="triage-levels">
+                                <div class="level critical">
+                                    <strong>Critical/Emergency</strong>
+                                    <span>Immediate attention required</span>
+                                </div>
+                                <div class="level high">
+                                    <strong>High/Urgent</strong>
+                                    <span>See within 15 minutes</span>
+                                </div>
+                                <div class="level medium">
+                                    <strong>Medium/Standard</strong>
+                                    <span>Can wait up to 1 hour</span>
+                                </div>
+                                <div class="level low">
+                                    <strong>Low/Non-Urgent</strong>
+                                    <span>Safe to wait longer</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="info-section">
+                            <h4>⚡ Fallback System</h4>
+                            <p>When no trained model is available, the system uses a comprehensive <strong>rule-based algorithm</strong> that evaluates vital signs and symptoms to determine triage priority.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private ModelInfo _modelInfo = new();
+    private bool _showTrainingModal = false;
+    private bool _showInfoModal = false;
+    private bool _isTraining = false;
+    private bool _trainingCompleted = false;
+    private string _trainingProgress = "";
+    private string _trainingMessage = "";
+    private double? _trainingAccuracy;
+    private TimeSpan? _trainingDuration;
+    private string? _uploadError;
+    private int _progressPercent = 0;
+
+    protected override void OnInitialized()
+    {
+        RefreshModelInfo();
+    }
+
+    private void RefreshModelInfo()
+    {
+        _modelInfo = ModelTrainingService.GetModelInfo();
+    }
+
+    private void HandleTrainModel()
+    {
+        _showTrainingModal = true;
+        _trainingCompleted = false;
+        _isTraining = false;
+        _trainingProgress = "";
+        _trainingMessage = "";
+        _trainingAccuracy = null;
+        _trainingDuration = null;
+        _uploadError = null;
+        _progressPercent = 0;
+    }
+
+    private void CloseTrainingModal()
+    {
+        _showTrainingModal = false;
+    }
+
+    private void CloseAndRefresh()
+    {
+        _showTrainingModal = false;
+        RefreshModelInfo();
+    }
+
+    private async Task SelectCsvFile()
+    {
+        try
+        {
+            _uploadError = null;
+
+            var customFileType = new FilePickerFileType(
+                new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.WinUI, new[] { ".csv" } },
+                    { DevicePlatform.Android, new[] { "text/csv", "text/comma-separated-values", "application/csv", "*/*" } },
+                    { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
+                    { DevicePlatform.MacCatalyst, new[] { "public.comma-separated-values-text" } }
+                });
+
+            var options = new PickOptions
+            {
+                PickerTitle = "Select CSV file for training",
+                FileTypes = customFileType
+            };
+
+            var result = await FilePicker.Default.PickAsync(options);
+
+            if (result != null)
+            {
+                await TrainModelFromFile(result);
+            }
+        }
+        catch (Exception ex)
+        {
+            _uploadError = $"Error selecting file: {ex.Message}";
+        }
+    }
+
+    private async Task TrainModelFromFile(FileResult file)
+    {
+        _isTraining = true;
+        _trainingProgress = "Reading file...";
+        _progressPercent = 10;
+        StateHasChanged();
+
+        try
+        {
+            using var stream = await file.OpenReadAsync();
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            var trainingResult = await ModelTrainingService.TrainFromCsvAsync(
+                memoryStream,
+                progress =>
+                {
+                    _trainingProgress = progress;
+                    _progressPercent = progress switch
+                    {
+                        var p when p.Contains("Loading") => 20,
+                        var p when p.Contains("Transforming") => 35,
+                        var p when p.Contains("Processing") => 50,
+                        var p when p.Contains("Building") => 60,
+                        var p when p.Contains("Training") => 75,
+                        var p when p.Contains("Evaluating") => 85,
+                        var p when p.Contains("Saving") => 95,
+                        var p when p.Contains("completed") => 100,
+                        _ => _progressPercent
+                    };
+                    InvokeAsync(StateHasChanged);
+                });
+
+            if (trainingResult.Success)
+            {
+                _trainingCompleted = true;
+                _trainingMessage = trainingResult.Message;
+                _trainingAccuracy = trainingResult.Accuracy;
+                _trainingDuration = trainingResult.TrainingDuration;
+                _progressPercent = 100;
+            }
+            else
+            {
+                _uploadError = trainingResult.Message;
+                _isTraining = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _uploadError = $"Training failed: {ex.Message}";
+            _isTraining = false;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task DownloadSampleCsv()
+    {
+        var sampleCsv = @"Patient_ID,Age,Gender,Symptoms,Blood_Pressure,Heart_Rate,Temperature,Pre_Existing_Conditions,Risk_Level
+P001,45,Male,""Chest pain, Shortness of breath"",150/95,110,37.2,Hypertension,High
+P002,32,Female,""Fever, Headache"",120/80,85,38.5,None,Medium
+P003,67,Male,""Severe chest pain, Difficulty breathing"",180/110,130,37.8,""Diabetes, Heart disease"",Critical
+P004,28,Female,""Mild headache"",115/75,72,36.8,None,Low
+P005,55,Male,""Dizziness, Nausea"",140/90,95,37.0,Hypertension,Medium
+P006,72,Female,""Unconscious, Low breathing"",90/60,55,35.5,""Heart disease, Diabetes"",Critical
+P007,40,Male,""Fever, Cough"",125/82,88,39.0,None,Medium
+P008,35,Female,""Abdominal pain"",118/78,76,37.1,None,Low
+P009,60,Male,""Chest tightness, Arm pain"",165/100,105,37.3,""Diabetes, Hypertension"",High
+P010,50,Female,""High fever, Severe body aches"",130/85,98,40.2,None,High
+P011,25,Male,""Minor cut, Bleeding"",120/80,75,36.9,None,Low
+P012,78,Female,""Confusion, Weakness"",170/105,62,36.5,""Hypertension, Heart disease"",Critical
+P013,42,Male,""Back pain, Limited mobility"",128/84,80,37.0,None,Medium
+P014,38,Female,""Allergic reaction, Swelling"",135/88,92,37.4,Allergies,High
+P015,65,Male,""Persistent cough, Fatigue"",145/92,86,37.8,""Diabetes, Hypertension"",Medium";
+
+        try
+        {
+            var fileName = $"sample_triage_data.csv";
+            var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
+            await File.WriteAllTextAsync(filePath, sampleCsv);
+
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = "Sample Triage CSV",
+                File = new ShareFile(filePath)
+            });
+        }
+        catch (Exception ex)
+        {
+            _uploadError = $"Could not share file: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+}
+
+<style>
+    .ai-model-page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 16px;
+    }
+
+    .page-header {
+        margin-bottom: 24px;
+    }
+
+    .page-header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 4px 0;
+    }
+
+    .page-header p {
+        color: #64748b;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    /* Access Denied */
+    .access-denied {
+        text-align: center;
+        padding: 60px 24px;
+    }
+
+    .access-denied h2 {
+        margin: 16px 0 8px;
+        color: #1e293b;
+    }
+
+    .access-denied p {
+        color: #64748b;
+        margin-bottom: 24px;
+    }
+
+    /* Model Status Card */
+    .model-status-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        margin-bottom: 24px;
+    }
+
+    .status-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .status-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .status-icon.active {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+    }
+
+    .status-icon.inactive {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .status-info h3 {
+        margin: 0 0 4px 0;
+        font-size: 16px;
+        color: #1e293b;
+    }
+
+    .status-badge {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    .badge-active {
+        background: rgba(34, 197, 94, 0.1);
+        color: #15803d;
+    }
+
+    .badge-warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+    }
+
+    .model-details {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .detail-label {
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    .detail-value {
+        color: #1e293b;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .detail-value.path {
+        font-size: 11px;
+        font-family: monospace;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .no-model-info {
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .no-model-info p {
+        color: #64748b;
+        font-size: 14px;
+        margin: 0 0 8px 0;
+    }
+
+    .no-model-info .hint {
+        font-size: 13px;
+        color: #94a3b8;
+    }
+
+    /* Action Grid */
+    .action-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .action-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 12px;
+    }
+
+    .card-icon.train {
+        background: rgba(13, 148, 136, 0.1);
+        color: #0d9488;
+    }
+
+    .card-icon.sample {
+        background: rgba(99, 102, 241, 0.1);
+        color: #6366f1;
+    }
+
+    .card-icon.info {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .action-card h3 {
+        font-size: 15px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0 0 8px 0;
+    }
+
+    .action-card p {
+        font-size: 13px;
+        color: #64748b;
+        margin: 0 0 16px 0;
+        line-height: 1.5;
+    }
+
+    /* CSV Info Section */
+    .csv-info-section {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        margin-bottom: 24px;
+    }
+
+    .csv-info-section h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0 0 16px 0;
+    }
+
+    .csv-table-container {
+        overflow-x: auto;
+    }
+
+    .csv-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .csv-table th {
+        background: #f8fafc;
+        padding: 10px 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #475569;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .csv-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #64748b;
+    }
+
+    .csv-table code {
+        background: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+        color: #0d9488;
+    }
+
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+    }
+
+    .btn-primary {
+        background: #0d9488;
+        color: #ffffff;
+    }
+
+    .btn-primary:hover {
+        background: #0f766e;
+    }
+
+    .btn-outline {
+        background: transparent;
+        border: 1.5px solid #e2e8f0;
+        color: #475569;
+    }
+
+    .btn-outline:hover {
+        border-color: #0d9488;
+        color: #0d9488;
+    }
+
+    .btn-large {
+        padding: 14px 24px;
+        font-size: 15px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .modal-content {
+        background: #ffffff;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 420px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-large {
+        max-width: 560px;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 18px;
+        color: #1e293b;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #64748b;
+        cursor: pointer;
+    }
+
+    .modal-body {
+        padding: 24px 20px;
+    }
+
+    /* Upload Section */
+    .upload-section {
+        text-align: center;
+    }
+
+    .upload-icon {
+        color: #94a3b8;
+        margin-bottom: 16px;
+    }
+
+    .upload-section p {
+        color: #64748b;
+        margin: 0 0 8px 0;
+    }
+
+    .upload-section .hint {
+        font-size: 13px;
+        color: #94a3b8;
+        margin-bottom: 20px;
+    }
+
+    .alert-error {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px;
+        background: #fef2f2;
+        border-radius: 10px;
+        color: #dc2626;
+        font-size: 14px;
+        margin-bottom: 16px;
+    }
+
+    /* Training Progress */
+    .training-progress {
+        text-align: center;
+        padding: 20px 0;
+    }
+
+    .progress-spinner {
+        width: 48px;
+        height: 48px;
+        border: 3px solid #e2e8f0;
+        border-top-color: #0d9488;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 16px;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .progress-text {
+        color: #64748b;
+        margin-bottom: 16px;
+    }
+
+    .progress-bar {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: #0d9488;
+        transition: width 0.3s ease;
+    }
+
+    /* Training Success */
+    .training-success {
+        text-align: center;
+    }
+
+    .training-success h3 {
+        color: #15803d;
+        margin: 16px 0 8px;
+    }
+
+    .training-success p {
+        color: #64748b;
+        font-size: 14px;
+        margin-bottom: 16px;
+    }
+
+    .accuracy-display {
+        background: #f0fdf4;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .accuracy-label {
+        display: block;
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 4px;
+    }
+
+    .accuracy-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #15803d;
+    }
+
+    .duration {
+        font-size: 13px;
+        color: #94a3b8;
+    }
+
+    /* Info Modal */
+    .info-modal-body {
+        padding: 20px;
+    }
+
+    .info-section {
+        margin-bottom: 20px;
+    }
+
+    .info-section h4 {
+        font-size: 15px;
+        color: #1e293b;
+        margin: 0 0 8px 0;
+    }
+
+    .info-section p {
+        font-size: 14px;
+        color: #64748b;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    .info-section ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    .info-section li {
+        margin-bottom: 4px;
+    }
+
+    .triage-levels {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .triage-levels .level {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    .level.critical { background: rgba(220, 38, 38, 0.1); }
+    .level.critical strong { color: #dc2626; }
+
+    .level.high { background: rgba(245, 158, 11, 0.1); }
+    .level.high strong { color: #d97706; }
+
+    .level.medium { background: rgba(59, 130, 246, 0.1); }
+    .level.medium strong { color: #2563eb; }
+
+    .level.low { background: rgba(34, 197, 94, 0.1); }
+    .level.low strong { color: #16a34a; }
+
+    .level span {
+        color: #64748b;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .action-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detail-value.path {
+            max-width: 150px;
+        }
+    }
+</style>

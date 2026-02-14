@@ -1,0 +1,365 @@
+@page "/patient-report/{PatientId:int}"
+@inject HospitalTriageAI.Services.IPatientService PatientService
+@inject HospitalTriageAI.Services.IAssignmentService AssignmentService
+@inject HospitalTriageAI.Services.IPdfReportService PdfReportService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+@if (_loading)
+{
+    <div class="loading-state">
+        <p>Loading patient report...</p>
+    </div>
+}
+else if (_patient == null)
+{
+    <div class="not-found">
+        <h2>Patient Not Found</h2>
+        <p>The requested patient record could not be found.</p>
+        <a href="/admin-dashboard" class="btn btn-primary">Back to Dashboard</a>
+    </div>
+}
+else
+{
+<div class="report-page">
+    <div class="page-header">
+        <div>
+            <h1>Patient Assessment Report</h1>
+            <p>Report #@PatientId.ToString("D6") - Generated @DateTime.Now.ToString("MMMM dd, yyyy")</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" @onclick="DownloadPdf" disabled="@_generating">
+                @if (_generating)
+                {
+                    <span>Generating...</span>
+                }
+                else
+                {
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <span>Download PDF</span>
+                }
+            </button>
+            <a href="/admin-dashboard" class="btn btn-outline">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Risk Banner -->
+    <section class="risk-banner @GetRiskClass(_patient.CurrentTriageLevel)">
+        <div class="risk-content">
+            <div class="risk-label">AI RISK ASSESSMENT</div>
+            <div class="risk-level">@GetRiskLabel(_patient.CurrentTriageLevel)</div>
+        </div>
+        <div class="risk-percentage">@((_patient.RiskPercentage ?? 0).ToString("F0"))%</div>
+    </section>
+
+    <div class="report-grid">
+        <!-- Left Column -->
+        <div class="report-column">
+            <!-- Patient Information -->
+            <section class="report-section">
+                <h2>Patient Information</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Full Name</span>
+                        <span class="info-value">@_patient.FullName</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Age</span>
+                        <span class="info-value">@_patient.Age years</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Gender</span>
+                        <span class="info-value">@_patient.Gender</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email</span>
+                        <span class="info-value">@(_patient.Email ?? "N/A")</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Phone</span>
+                        <span class="info-value">@(_patient.PhoneNumber ?? "N/A")</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Registration</span>
+                        <span class="info-value">@_patient.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Vital Signs -->
+            @if (_assessment != null)
+            {
+                <section class="report-section">
+                    <h2>Vital Signs</h2>
+                    <div class="vitals-grid">
+                        <div class="vital-card">
+                            <span class="vital-value">@_assessment.HeartRate.ToString("F0")</span>
+                            <span class="vital-unit">bpm</span>
+                            <span class="vital-label">Heart Rate</span>
+                        </div>
+                        <div class="vital-card">
+                            <span class="vital-value">@_assessment.BloodPressureSystolic.ToString("F0")/@_assessment.BloodPressureDiastolic.ToString("F0")</span>
+                            <span class="vital-unit">mmHg</span>
+                            <span class="vital-label">Blood Pressure</span>
+                        </div>
+                        <div class="vital-card">
+                            <span class="vital-value">@_assessment.Temperature.ToString("F1")</span>
+                            <span class="vital-unit">°C</span>
+                            <span class="vital-label">Temperature</span>
+                        </div>
+                        <div class="vital-card">
+                            <span class="vital-value">@_assessment.OxygenSaturation.ToString("F0")</span>
+                            <span class="vital-unit">%</span>
+                            <span class="vital-label">O2 Saturation</span>
+                        </div>
+                        <div class="vital-card">
+                            <span class="vital-value">@_assessment.RespiratoryRate.ToString("F0")</span>
+                            <span class="vital-unit">breaths/min</span>
+                            <span class="vital-label">Respiratory Rate</span>
+                        </div>
+                        <div class="vital-card">
+                            <span class="vital-value">@_assessment.PainLevel</span>
+                            <span class="vital-unit">/ 10</span>
+                            <span class="vital-label">Pain Level</span>
+                        </div>
+                    </div>
+                </section>
+            }
+            else
+            {
+                <section class="report-section">
+                    <h2>Vital Signs</h2>
+                    <div class="no-data">No vital signs recorded yet.</div>
+                </section>
+            }
+        </div>
+
+        <!-- Right Column -->
+        <div class="report-column">
+            <!-- Chief Complaint -->
+            <section class="report-section">
+                <h2>Chief Complaint</h2>
+                <p class="complaint-text">@(_patient.ChiefComplaint ?? "No symptoms reported")</p>
+                @if (!string.IsNullOrEmpty(_patient.MedicalHistory))
+                {
+                    <div class="history-note">
+                        <strong>Medical History:</strong> @_patient.MedicalHistory
+                    </div>
+                }
+            </section>
+
+            <!-- AI Assessment -->
+            <section class="report-section">
+                <h2>AI Triage Assessment</h2>
+                <div class="assessment-grid">
+                    <div class="assessment-item">
+                        <span class="label">Triage Level</span>
+                        <span class="value @GetRiskClass(_patient.CurrentTriageLevel)">
+                            @GetTriageLevelLabel(_patient.CurrentTriageLevel)
+                        </span>
+                    </div>
+                    <div class="assessment-item">
+                        <span class="label">Risk Score</span>
+                        <span class="value">@((_patient.RiskPercentage ?? 0).ToString("F1"))%</span>
+                    </div>
+                    <div class="assessment-item">
+                        <span class="label">Recommended Dept</span>
+                        <span class="value">@(_patient.RecommendedDepartment ?? "General Medicine")</span>
+                    </div>
+                    <div class="assessment-item">
+                        <span class="label">Status</span>
+                        <span class="value status-badge @GetStatusClass(_patient.Status)">@_patient.Status</span>
+                    </div>
+                </div>
+                <div class="ai-note">
+                    <strong>AI Analysis Note:</strong>
+                    Risk assessment calculated based on vital signs, symptom severity, and patient history. 
+                    This is an AI-assisted preliminary assessment and should be verified by medical professionals.
+                </div>
+            </section>
+
+            <!-- Doctor Assignment -->
+            @if (_assignedDoctor != null)
+            {
+                <section class="report-section">
+                    <h2>Doctor Assignment</h2>
+                    <div class="doctor-info">
+                        <strong>@_assignedDoctor.Name</strong>
+                        <span>@_assignedDoctor.Department - @_assignedDoctor.Specialization</span>
+                    </div>
+                </section>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="message-toast @(_isError ? "error" : "success")">@_message</div>
+    }
+</div>
+}
+
+@code {
+    [Parameter] public int PatientId { get; set; }
+
+    private Patient? _patient;
+    private HospitalTriageAI.Models.TriageAssessment? _assessment;
+    private Doctor? _assignedDoctor;
+    private bool _loading = true;
+    private bool _generating = false;
+    private string _message = "";
+    private bool _isError = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        try
+        {
+            _patient = await PatientService.GetPatientAsync(PatientId);
+            if (_patient != null)
+            {
+                _assessment = _patient.Assessments?.OrderByDescending(a => a.AssessedAt).FirstOrDefault();
+                var assignment = await AssignmentService.GetPatientAssignmentAsync(PatientId);
+                _assignedDoctor = assignment?.Doctor;
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error: {ex.Message}";
+            _isError = true;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task DownloadPdf()
+    {
+        if (_patient == null) return;
+        _generating = true;
+        _message = "";
+        try
+        {
+            var pdfBytes = await PdfReportService.GeneratePatientReportAsync(_patient, _assignedDoctor);
+            var fileName = $"TriageReport_{_patient.FullName.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd}.pdf";
+            var base64 = Convert.ToBase64String(pdfBytes);
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBase64", fileName, base64, "application/pdf");
+            _message = "PDF report generated successfully!";
+            _isError = false;
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error generating PDF: {ex.Message}";
+            _isError = true;
+        }
+        finally
+        {
+            _generating = false;
+        }
+    }
+
+    private string GetRiskClass(TriageLevel level) => level switch
+    {
+        TriageLevel.Emergency => "danger",
+        TriageLevel.Urgent => "warning",
+        TriageLevel.Standard => "info",
+        TriageLevel.NonUrgent => "success",
+        _ => "default"
+    };
+
+    private string GetRiskLabel(TriageLevel level) => level switch
+    {
+        TriageLevel.Emergency => "EMERGENCY - Immediate Care Required",
+        TriageLevel.Urgent => "URGENT - Priority Care Needed",
+        TriageLevel.Standard => "STANDARD - Timely Care",
+        TriageLevel.NonUrgent => "LOW RISK - Routine Care",
+        _ => "UNASSESSED"
+    };
+
+    private string GetTriageLevelLabel(TriageLevel level) => level switch
+    {
+        TriageLevel.Emergency => "Emergency (Level 1)",
+        TriageLevel.Urgent => "Urgent (Level 2)",
+        TriageLevel.Standard => "Standard (Level 3)",
+        TriageLevel.NonUrgent => "Non-Urgent (Level 4)",
+        _ => "Unassessed"
+    };
+
+    private string GetStatusClass(PatientStatus status) => status switch
+    {
+        PatientStatus.Waiting => "waiting",
+        PatientStatus.Assigned => "assigned",
+        PatientStatus.InProgress => "in-progress",
+        PatientStatus.Completed => "completed",
+        _ => "default"
+    };
+}
+
+<style>
+    .loading-state, .not-found { text-align: center; padding: var(--space-12); }
+    .report-page { display: flex; flex-direction: column; gap: var(--space-6); }
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .page-header h1 { margin-bottom: var(--space-1); }
+    .page-header p { color: var(--gray-500); margin: 0; }
+    .header-actions { display: flex; gap: var(--space-3); }
+
+    .risk-banner { display: flex; justify-content: space-between; align-items: center; padding: var(--space-5); border-radius: var(--radius-lg); }
+    .risk-banner.danger { background: linear-gradient(135deg, #FEE2E2, #FECACA); border: 2px solid #DC2626; }
+    .risk-banner.warning { background: linear-gradient(135deg, #FEF3C7, #FDE68A); border: 2px solid #F59E0B; }
+    .risk-banner.info { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); border: 2px solid #3B82F6; }
+    .risk-banner.success { background: linear-gradient(135deg, #D1FAE5, #A7F3D0); border: 2px solid #22C55E; }
+    .risk-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 1px; margin-bottom: var(--space-1); }
+    .risk-level { font-size: 1.25rem; font-weight: 700; }
+    .risk-banner.danger .risk-label, .risk-banner.danger .risk-level, .risk-banner.danger .risk-percentage { color: #DC2626; }
+    .risk-banner.warning .risk-label, .risk-banner.warning .risk-level, .risk-banner.warning .risk-percentage { color: #B45309; }
+    .risk-banner.info .risk-label, .risk-banner.info .risk-level, .risk-banner.info .risk-percentage { color: #1D4ED8; }
+    .risk-banner.success .risk-label, .risk-banner.success .risk-level, .risk-banner.success .risk-percentage { color: #15803D; }
+    .risk-percentage { font-size: 2.5rem; font-weight: 800; }
+
+    .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
+    .report-section { background: var(--white); border: 2px solid var(--primary-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-5); }
+    .report-section h2 { font-size: 1rem; color: var(--primary-dark); border-bottom: 2px solid var(--primary-light); padding-bottom: var(--space-2); margin-bottom: var(--space-4); }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .info-item { display: flex; flex-direction: column; gap: 2px; }
+    .info-label { font-size: 0.75rem; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+    .info-value { font-weight: 600; }
+
+    .vitals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+    .vital-card { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: var(--space-3); text-align: center; }
+    .vital-value { display: block; font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+    .vital-unit { font-size: 0.75rem; color: var(--gray-500); }
+    .vital-label { display: block; font-size: 0.75rem; color: var(--gray-500); margin-top: var(--space-1); }
+
+    .no-data { text-align: center; padding: var(--space-6); color: var(--gray-500); }
+    .complaint-text { font-size: 1rem; margin-bottom: var(--space-3); }
+    .history-note { background: var(--gray-50); padding: var(--space-3); border-radius: var(--radius-md); font-size: 0.875rem; }
+
+    .assessment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-bottom: var(--space-4); }
+    .assessment-item .label { display: block; font-size: 0.75rem; color: var(--gray-500); margin-bottom: var(--space-1); }
+    .assessment-item .value { font-weight: 600; }
+    .assessment-item .value.danger { color: #DC2626; }
+    .assessment-item .value.warning { color: #F59E0B; }
+    .assessment-item .value.info { color: #3B82F6; }
+    .assessment-item .value.success { color: #22C55E; }
+    .status-badge { display: inline-block; padding: 2px 8px; border-radius: var(--radius-full); font-size: 0.75rem; }
+    .status-badge.waiting { background: rgba(107,114,128,0.1); color: #6B7280; }
+    .status-badge.assigned { background: rgba(59,130,246,0.1); color: #3B82F6; }
+    .status-badge.in-progress { background: rgba(245,158,11,0.1); color: #F59E0B; }
+    .status-badge.completed { background: rgba(34,197,94,0.1); color: #22C55E; }
+    .ai-note { background: var(--gray-50); padding: var(--space-3); border-radius: var(--radius-md); font-size: 0.8125rem; color: var(--gray-600); }
+
+    .doctor-info strong { display: block; }
+    .doctor-info span { font-size: 0.8125rem; color: var(--gray-500); }
+
+    .message-toast { position: fixed; bottom: var(--space-6); right: var(--space-6); padding: var(--space-4) var(--space-6); border-radius: var(--radius-md); font-weight: 500; z-index: 1000; }
+    .message-toast.success { background: #22C55E; color: white; }
+    .message-toast.error { background: #DC2626; color: white; }
+
+    @@media (max-width: 768px) { .report-grid { grid-template-columns: 1fr; } .vitals-grid { grid-template-columns: repeat(2, 1fr); } .page-header { flex-direction: column; gap: var(--space-4); } }
+</style>

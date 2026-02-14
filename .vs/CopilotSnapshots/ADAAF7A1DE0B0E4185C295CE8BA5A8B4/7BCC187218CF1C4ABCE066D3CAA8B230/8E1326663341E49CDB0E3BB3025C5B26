@@ -1,0 +1,71 @@
+﻿using Android.App;
+using Android.Content.PM;
+using Android.OS;
+using Android.Webkit;
+using Microsoft.Maui.Platform;
+
+namespace HospitalTriageAI;
+
+[Activity(Theme = "@style/Maui.SplashTheme", MainLauncher = true, LaunchMode = LaunchMode.SingleTop, ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
+public class MainActivity : MauiAppCompatActivity
+{
+    protected override void OnCreate(Bundle? savedInstanceState)
+    {
+        // Fix for "No view found for id" error in .NET MAUI Blazor Hybrid on Android
+        // Passing null prevents fragment restoration issues that cause the crash
+        base.OnCreate(null);
+    }
+
+    public override void OnBackPressed()
+    {
+        // Find the BlazorWebView and handle back navigation
+        var webView = GetBlazorWebView();
+        
+        if (webView != null && webView.CanGoBack())
+        {
+            webView.GoBack();
+        }
+        else
+        {
+            // If can't go back, use default behavior (exit app)
+            base.OnBackPressed();
+        }
+    }
+
+    private Android.Webkit.WebView? GetBlazorWebView()
+    {
+        try
+        {
+            // Find the WebView in the view hierarchy
+            var contentView = FindViewById<Android.Views.ViewGroup>(Android.Resource.Id.Content);
+            return FindWebView(contentView);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private Android.Webkit.WebView? FindWebView(Android.Views.ViewGroup? viewGroup)
+    {
+        if (viewGroup == null) return null;
+
+        for (int i = 0; i < viewGroup.ChildCount; i++)
+        {
+            var child = viewGroup.GetChildAt(i);
+            
+            if (child is Android.Webkit.WebView webView)
+            {
+                return webView;
+            }
+            
+            if (child is Android.Views.ViewGroup childGroup)
+            {
+                var result = FindWebView(childGroup);
+                if (result != null) return result;
+            }
+        }
+        
+        return null;
+    }
+}

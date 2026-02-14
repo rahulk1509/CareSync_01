@@ -1,0 +1,819 @@
+@page "/admin-dashboard"
+@inject HospitalTriageAI.Services.IPatientService PatientService
+@inject HospitalTriageAI.Services.IDoctorService DoctorService
+@inject HospitalTriageAI.Services.IAssignmentService AssignmentService
+@inject HospitalTriageAI.Services.IAuthService AuthService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+@if (!AuthService.IsAdmin)
+{
+    <div class="access-denied">
+        <h2>Access Denied</h2>
+        <p>You must be logged in as an administrator to access this page.</p>
+        <a href="/login" class="btn btn-primary">Login as Admin</a>
+    </div>
+}
+else
+{
+<div class="dashboard-page">
+    <div class="dashboard-header">
+        <div>
+            <h1>Admin Dashboard</h1>
+            <p>Welcome, @AuthService.CurrentUser?.FullName</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" @onclick="RefreshData">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23,4 23,10 17,10"/>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                Refresh
+            </button>
+            <span class="auto-refresh-badge">Auto-refresh: 5s</span>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <section class="stats-overview">
+        <div class="stat-card">
+            <div class="stat-icon patients">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">@_stats.TotalPatients</span>
+                <span class="stat-label">Total Patients</span>
+            </div>
+        </div>
+        <div class="stat-card high-risk">
+            <div class="stat-icon danger">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">@_stats.HighRiskCount</span>
+                <span class="stat-label">High Risk</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">@_stats.MediumRiskCount</span>
+                <span class="stat-label">Medium Risk</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">@_stats.LowRiskCount</span>
+                <span class="stat-label">Low Risk</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon doctors">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="8.5" cy="7" r="4"/>
+                    <line x1="20" y1="8" x2="20" y2="14"/>
+                    <line x1="23" y1="11" x2="17" y2="11"/>
+                </svg>
+            </div>
+            <div class="stat-content">
+                <span class="stat-value">@_doctorStats.AvailableDoctors</span>
+                <span class="stat-label">Doctors Available</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- High Risk Alerts -->
+    @if (_highRiskPatients.Any())
+    {
+        <section class="high-risk-section">
+            <div class="section-header danger">
+                <div class="alert-icon blink">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <h2>High Risk Alerts (@_highRiskPatients.Count)</h2>
+            </div>
+            <div class="alert-cards">
+                @foreach (var patient in _highRiskPatients.Take(5))
+                {
+                    <div class="alert-card">
+                        <div class="alert-patient">
+                            <strong>@patient.FullName</strong>
+                            <span class="risk-badge @GetRiskClass(patient.CurrentTriageLevel)">
+                                @GetRiskLabel(patient.CurrentTriageLevel)
+                            </span>
+                        </div>
+                        <div class="alert-details">
+                            <span>Risk: @((patient.RiskPercentage ?? 0).ToString("F0"))%</span>
+                            <span>Dept: @(patient.RecommendedDepartment ?? "N/A")</span>
+                        </div>
+                        <button class="btn btn-sm btn-accent" @onclick="() => OpenAssignModal(patient)">
+                            Assign Doctor
+                        </button>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    <!-- Patient Queue -->
+    <section class="queue-section">
+        <div class="section-header">
+            <h2>Patient Queue</h2>
+            <span class="badge">@_patientQueue.Count patients</span>
+        </div>
+        
+        @if (_patientQueue.Any())
+        {
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Risk %</th>
+                            <th>Risk Level</th>
+                            <th>Department</th>
+                            <th>Assigned Doctor</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var patient in _patientQueue)
+                        {
+                            var assignment = patient.Assignments.FirstOrDefault();
+                            <tr class="@(IsHighRisk(patient) ? "high-risk-row" : "")">
+                                <td>
+                                    <div class="patient-name">
+                                        @patient.FullName
+                                        @if (IsHighRisk(patient))
+                                        {
+                                            <span class="blink-dot"></span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="risk-percentage @GetRiskClass(patient.CurrentTriageLevel)">
+                                        @((patient.RiskPercentage ?? 0).ToString("F0"))%
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="risk-badge @GetRiskClass(patient.CurrentTriageLevel)">
+                                        @GetRiskLabel(patient.CurrentTriageLevel)
+                                    </span>
+                                </td>
+                                <td>@(patient.RecommendedDepartment ?? "General")</td>
+                                <td>@(assignment?.Doctor?.Name ?? "—")</td>
+                                <td>
+                                    <span class="status-badge @GetStatusClass(patient.Status)">
+                                        @patient.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        @if (patient.Status == PatientStatus.Waiting)
+                                        {
+                                            <button class="btn btn-sm btn-primary" @onclick="() => OpenAssignModal(patient)">
+                                                Assign
+                                            </button>
+                                        }
+                                        <button class="btn btn-sm btn-outline" @onclick="() => ViewPatientReport(patient)">
+                                            Report
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <p>No patients in queue.</p>
+            </div>
+        }
+    </section>
+
+    <!-- Doctor Management Quick View -->
+    <section class="doctors-section">
+        <div class="section-header">
+            <h2>Doctor Availability</h2>
+            <a href="/doctors" class="btn btn-sm btn-outline">Manage Doctors</a>
+        </div>
+        <div class="doctors-grid">
+            @foreach (var doctor in _doctors)
+            {
+                <div class="doctor-card @(doctor.IsAvailable ? "" : "unavailable")">
+                    <div class="doctor-info">
+                        <strong>@doctor.Name</strong>
+                        <span class="department">@doctor.Department</span>
+                    </div>
+                    <div class="doctor-status">
+                        <span class="workload">@doctor.CurrentPatientCount / @doctor.MaxPatientCapacity patients</span>
+                        <span class="availability @(doctor.IsAvailable ? "available" : "unavailable")">
+                            @(doctor.IsAvailable ? "Available" : "Unavailable")
+                        </span>
+                    </div>
+                    <button class="btn btn-sm @(doctor.IsAvailable ? "btn-outline-danger" : "btn-primary")" 
+                            @onclick="() => ToggleDoctorAvailability(doctor.Id)">
+                        @(doctor.IsAvailable ? "Set Unavailable" : "Set Available")
+                    </button>
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+<!-- Assign Doctor Modal -->
+@if (_showAssignModal && _selectedPatient != null)
+{
+    <div class="modal-overlay" @onclick="CloseAssignModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Assign Doctor</h3>
+                <button class="modal-close" @onclick="CloseAssignModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Patient:</strong> @_selectedPatient.FullName</p>
+                <p><strong>Risk Level:</strong> @GetRiskLabel(_selectedPatient.CurrentTriageLevel)</p>
+                <p><strong>Department:</strong> @(_selectedPatient.RecommendedDepartment ?? "General")</p>
+                
+                <div class="form-group">
+                    <label class="form-label">Select Available Doctor</label>
+                    <select @bind="_selectedDoctorId" class="form-input">
+                        <option value="0">-- Select Doctor --</option>
+                        @foreach (var doctor in _availableDoctors)
+                        {
+                            <option value="@doctor.Id">
+                                @doctor.Name - @doctor.Department (@(doctor.MaxPatientCapacity - doctor.CurrentPatientCount) slots)
+                            </option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" @onclick="CloseAssignModal">Cancel</button>
+                <button class="btn btn-accent" @onclick="AssignDoctor" disabled="@(_selectedDoctorId == 0)">
+                    Assign Doctor
+                </button>
+            </div>
+        </div>
+    </div>
+}
+}
+
+@code {
+    private PatientStats _stats = new();
+    private DoctorStats _doctorStats = new();
+    private List<Patient> _patientQueue = new();
+    private List<Patient> _highRiskPatients = new();
+    private List<Doctor> _doctors = new();
+    private List<Doctor> _availableDoctors = new();
+    
+    private bool _showAssignModal = false;
+    private Patient? _selectedPatient;
+    private int _selectedDoctorId = 0;
+    
+    private System.Threading.Timer? _refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshData();
+        
+        // Auto-refresh every 5 seconds
+        _refreshTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshData();
+                StateHasChanged();
+            });
+        }, null, 5000, 5000);
+    }
+
+    private async Task RefreshData()
+    {
+        try
+        {
+            _stats = await PatientService.GetStatsAsync();
+            _doctorStats = await DoctorService.GetStatsAsync();
+            _patientQueue = await PatientService.GetPatientQueueAsync();
+            _highRiskPatients = await PatientService.GetHighRiskPatientsAsync();
+            _doctors = await DoctorService.GetAllDoctorsAsync();
+            _availableDoctors = await DoctorService.GetAvailableDoctorsAsync();
+        }
+        catch { }
+    }
+
+    private void OpenAssignModal(Patient patient)
+    {
+        _selectedPatient = patient;
+        _selectedDoctorId = 0;
+        _showAssignModal = true;
+    }
+
+    private void CloseAssignModal()
+    {
+        _showAssignModal = false;
+        _selectedPatient = null;
+    }
+
+    private async Task AssignDoctor()
+    {
+        if (_selectedPatient != null && _selectedDoctorId > 0)
+        {
+            await AssignmentService.AssignPatientAsync(
+                _selectedPatient.Id, 
+                _selectedDoctorId, 
+                AuthService.CurrentUser?.Email);
+            
+            CloseAssignModal();
+            await RefreshData();
+        }
+    }
+
+    private async Task ToggleDoctorAvailability(int doctorId)
+    {
+        await DoctorService.ToggleAvailabilityAsync(doctorId);
+        await RefreshData();
+    }
+
+    private void ViewPatientReport(Patient patient)
+    {
+        Navigation.NavigateTo($"/patient-report/{patient.Id}");
+    }
+
+    private bool IsHighRisk(Patient patient) => 
+        patient.CurrentTriageLevel == TriageLevel.Emergency || 
+        patient.CurrentTriageLevel == TriageLevel.Urgent;
+
+    private string GetRiskClass(TriageLevel level) => level switch
+    {
+        TriageLevel.Emergency => "danger",
+        TriageLevel.Urgent => "warning",
+        TriageLevel.Standard => "info",
+        TriageLevel.NonUrgent => "success",
+        _ => "default"
+    };
+
+    private string GetRiskLabel(TriageLevel level) => level switch
+    {
+        TriageLevel.Emergency => "Emergency",
+        TriageLevel.Urgent => "Urgent",
+        TriageLevel.Standard => "Standard",
+        TriageLevel.NonUrgent => "Low",
+        _ => "Unassessed"
+    };
+
+    private string GetStatusClass(PatientStatus status) => status switch
+    {
+        PatientStatus.Waiting => "waiting",
+        PatientStatus.Assigned => "assigned",
+        PatientStatus.InProgress => "in-progress",
+        PatientStatus.Completed => "completed",
+        _ => "default"
+    };
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+    }
+}
+
+<style>
+    .access-denied {
+        text-align: center;
+        padding: var(--space-12);
+    }
+
+    .dashboard-page {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-8);
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dashboard-header h1 {
+        margin-bottom: var(--space-1);
+    }
+
+    .dashboard-header p {
+        color: var(--gray-500);
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .auto-refresh-badge {
+        background: var(--primary-light);
+        color: var(--primary);
+        padding: var(--space-1) var(--space-3);
+        border-radius: var(--radius-full);
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    /* Stats */
+    .stats-overview {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: var(--space-4);
+    }
+
+    .stat-card {
+        background: var(--white);
+        border: 2px solid var(--primary-border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .stat-card.high-risk {
+        border-color: #DC2626;
+        background: linear-gradient(to right, rgba(220,38,38,0.05), var(--white));
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .stat-icon.patients { background: var(--primary-light); color: var(--primary); }
+    .stat-icon.danger { background: rgba(220,38,38,0.1); color: #DC2626; }
+    .stat-icon.warning { background: rgba(245,158,11,0.1); color: #F59E0B; }
+    .stat-icon.success { background: rgba(34,197,94,0.1); color: #22C55E; }
+    .stat-icon.doctors { background: rgba(59,130,246,0.1); color: #3B82F6; }
+
+    .stat-value {
+        display: block;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--gray-900);
+    }
+
+    .stat-label {
+        font-size: 0.8125rem;
+        color: var(--gray-500);
+    }
+
+    /* High Risk Section */
+    .high-risk-section {
+        background: rgba(220,38,38,0.03);
+        border: 2px solid rgba(220,38,38,0.2);
+        border-radius: var(--radius-lg);
+        padding: var(--space-5);
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        margin-bottom: var(--space-4);
+    }
+
+    .section-header.danger {
+        color: #DC2626;
+    }
+
+    .section-header h2 {
+        margin: 0;
+        font-size: 1.125rem;
+    }
+
+    .alert-icon {
+        width: 32px;
+        height: 32px;
+        background: #DC2626;
+        color: white;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .blink {
+        animation: blink 1s infinite;
+    }
+
+    @@keyframes blink {
+        0%, 50%, 100% { opacity: 1; }
+        25%, 75% { opacity: 0.4; }
+    }
+
+    .alert-cards {
+        display: flex;
+        gap: var(--space-3);
+        overflow-x: auto;
+    }
+
+    .alert-card {
+        background: var(--white);
+        border: 1px solid rgba(220,38,38,0.3);
+        border-radius: var(--radius-md);
+        padding: var(--space-4);
+        min-width: 200px;
+    }
+
+    .alert-patient {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-2);
+    }
+
+    .alert-details {
+        font-size: 0.8125rem;
+        color: var(--gray-500);
+        margin-bottom: var(--space-3);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    /* Queue Table */
+    .queue-section {
+        background: var(--white);
+        border: 2px solid var(--primary-border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-5);
+    }
+
+    .badge {
+        background: var(--primary-light);
+        color: var(--primary);
+        padding: var(--space-1) var(--space-3);
+        border-radius: var(--radius-full);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: var(--space-3) var(--space-4);
+        text-align: left;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .data-table th {
+        background: var(--gray-50);
+        font-weight: 600;
+        font-size: 0.8125rem;
+        color: var(--gray-600);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .data-table tr.high-risk-row {
+        background: rgba(220,38,38,0.03);
+    }
+
+    .patient-name {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .blink-dot {
+        width: 8px;
+        height: 8px;
+        background: #DC2626;
+        border-radius: 50%;
+        animation: blink 1s infinite;
+    }
+
+    .risk-percentage {
+        font-weight: 600;
+    }
+
+    .risk-percentage.danger { color: #DC2626; }
+    .risk-percentage.warning { color: #F59E0B; }
+    .risk-percentage.success { color: #22C55E; }
+
+    .risk-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .risk-badge.danger { background: rgba(220,38,38,0.1); color: #DC2626; }
+    .risk-badge.warning { background: rgba(245,158,11,0.1); color: #F59E0B; }
+    .risk-badge.info { background: rgba(59,130,246,0.1); color: #3B82F6; }
+    .risk-badge.success { background: rgba(34,197,94,0.1); color: #22C55E; }
+
+    .status-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .status-badge.waiting { background: rgba(107,114,128,0.1); color: #6B7280; }
+    .status-badge.assigned { background: rgba(59,130,246,0.1); color: #3B82F6; }
+    .status-badge.in-progress { background: rgba(245,158,11,0.1); color: #F59E0B; }
+    .status-badge.completed { background: rgba(34,197,94,0.1); color: #22C55E; }
+
+    .action-buttons {
+        display: flex;
+        gap: var(--space-2);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--space-8);
+        color: var(--gray-500);
+    }
+
+    /* Doctors Section */
+    .doctors-section {
+        background: var(--white);
+        border: 2px solid var(--primary-border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-5);
+    }
+
+    .doctors-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-4);
+    }
+
+    .doctor-card {
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        padding: var(--space-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .doctor-card.unavailable {
+        opacity: 0.6;
+        background: var(--gray-50);
+    }
+
+    .doctor-info strong {
+        display: block;
+    }
+
+    .department {
+        font-size: 0.8125rem;
+        color: var(--gray-500);
+    }
+
+    .doctor-status {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8125rem;
+    }
+
+    .workload {
+        color: var(--gray-600);
+    }
+
+    .availability.available {
+        color: #22C55E;
+        font-weight: 500;
+    }
+
+    .availability.unavailable {
+        color: #DC2626;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        width: 100%;
+        max-width: 450px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-4) var(--space-5);
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .modal-header h3 {
+        margin: 0;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--gray-500);
+    }
+
+    .modal-body {
+        padding: var(--space-5);
+    }
+
+    .modal-body p {
+        margin-bottom: var(--space-2);
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-5);
+        border-top: 1px solid var(--gray-200);
+    }
+
+    /* Buttons */
+    .btn-sm {
+        padding: var(--space-1) var(--space-3);
+        font-size: 0.8125rem;
+    }
+
+    .btn-outline-danger {
+        background: transparent;
+        border: 1px solid #DC2626;
+        color: #DC2626;
+    }
+
+    .btn-outline-danger:hover {
+        background: rgba(220,38,38,0.1);
+    }
+
+    @@media (max-width: 1024px) {
+        .stats-overview { grid-template-columns: repeat(3, 1fr); }
+        .doctors-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @@media (max-width: 640px) {
+        .stats-overview { grid-template-columns: 1fr 1fr; }
+        .doctors-grid { grid-template-columns: 1fr; }
+        .dashboard-header { flex-direction: column; gap: var(--space-4); }
+    }
+</style>

@@ -1,0 +1,539 @@
+﻿using Microsoft.ML;
+using Microsoft.ML.Data;
+using HospitalTriageAI.Models;
+using HospitalTriageAI.Models.Enums;
+
+namespace HospitalTriageAI.AI;
+
+/// <summary>
+/// ML.NET prediction engine wrapper for triage risk assessment.
+/// Falls back to rule-based prediction if no trained model is available.
+/// </summary>
+public class TriagePredictionEngine
+{
+    private readonly MLContext _mlContext;
+    private PredictionEngine<TransformedTrainingInput, TrainingModelOutput>? _predictionEngine;
+    private ITransformer? _trainedModel;
+    private bool _modelLoaded = false;
+    private DateTime? _modelTrainedDate;
+    private int? _trainingRecordCount;
+    
+    public bool IsModelLoaded => _modelLoaded;
+    public DateTime? ModelTrainedDate => _modelTrainedDate;
+    public int? TrainingRecordCount => _trainingRecordCount;
+    
+    public TriagePredictionEngine()
+    {
+        _mlContext = new MLContext(seed: 42);
+        TryLoadModel();
+    }
+    
+    public string GetModelPath()
+    {
+        return Path.Combine(GetModelsDirectory(), "TriageModel.zip");
+    }
+    
+    private string GetModelsDirectory()
+    {
+        // Use AppData for model storage (writable location)
+        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var modelsDir = Path.Combine(appDataPath, "HospitalTriageAI", "Models");
+        Directory.CreateDirectory(modelsDir);
+        return modelsDir;
+    }
+    
+    private void TryLoadModel()
+    {
+        try
+        {
+            var modelPath = GetModelPath();
+            if (File.Exists(modelPath))
+            {
+                _trainedModel = _mlContext.Model.Load(modelPath, out _);
+                _predictionEngine = _mlContext.Model.CreatePredictionEngine<TransformedTrainingInput, TrainingModelOutput>(_trainedModel);
+                _modelLoaded = true;
+                _modelTrainedDate = File.GetLastWriteTime(modelPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ML Model not loaded, using rule-based prediction: {ex.Message}");
+            _modelLoaded = false;
+        }
+    }
+    
+    /// <summary>
+    /// Trains the model from CSV data and saves it
+    /// </summary>
+    public async Task<(bool Success, string Message, double? Accuracy)> TrainModelAsync(
+        Stream csvStream, 
+        Action<string>? progressCallback = null)
+    {
+        return await Task.Run<(bool, string, double?)>(() =>
+        {
+            try
+            {
+                progressCallback?.Invoke("Loading CSV data...");
+                
+                // Save stream to temp file for ML.NET to read
+                var tempPath = Path.GetTempFileName();
+                using (var fileStream = File.Create(tempPath))
+                {
+                    csvStream.CopyTo(fileStream);
+                }
+                
+                // Auto-detect separator (tab or comma)
+                var separator = DetectSeparator(tempPath);
+                progressCallback?.Invoke($"Detected {(separator == '\t' ? "tab" : "comma")}-separated format...");
+                
+                // Load data from CSV/TSV
+                var rawData = _mlContext.Data.LoadFromTextFile<CsvTrainingInput>(
+                    tempPath,
+                    hasHeader: true,
+                    separatorChar: separator,
+                    allowQuoting: true);
+                
+                progressCallback?.Invoke("Transforming data...");
+                
+                // Convert to list for transformation
+                var rawRecords = _mlContext.Data.CreateEnumerable<CsvTrainingInput>(rawData, reuseRowObject: false).ToList();
+                _trainingRecordCount = rawRecords.Count;
+                
+                if (rawRecords.Count < 10)
+                {
+                    return (false, $"Not enough training data. Found {rawRecords.Count} records, need at least 10.", (double?)null);
+                }
+                
+                progressCallback?.Invoke($"Processing {rawRecords.Count} records...");
+                
+                // Transform records
+                var transformedRecords = rawRecords.Select(TransformRecord).ToList();
+                var trainingData = _mlContext.Data.LoadFromEnumerable(transformedRecords);
+                
+                // Split data
+                var splitData = _mlContext.Data.TrainTestSplit(trainingData, testFraction: 0.2);
+                
+                progressCallback?.Invoke("Building training pipeline...");
+                
+                // Build pipeline
+                var featureColumns = new[]
+                {
+                    nameof(TransformedTrainingInput.Age),
+                    nameof(TransformedTrainingInput.GenderEncoded),
+                    nameof(TransformedTrainingInput.SymptomCount),
+                    nameof(TransformedTrainingInput.SymptomSeverity),
+                    nameof(TransformedTrainingInput.BloodPressureSystolic),
+                    nameof(TransformedTrainingInput.BloodPressureDiastolic),
+                    nameof(TransformedTrainingInput.Heart_Rate),
+                    nameof(TransformedTrainingInput.Temperature),
+                    nameof(TransformedTrainingInput.PreExistingConditionCount),
+                    nameof(TransformedTrainingInput.HasDiabetes),
+                    nameof(TransformedTrainingInput.HasHeartDisease),
+                    nameof(TransformedTrainingInput.HasHypertension)
+                };
+                
+                var pipeline = _mlContext.Transforms.Concatenate("Features", featureColumns)
+                    .Append(_mlContext.Transforms.NormalizeMinMax("Features"))
+                    .Append(_mlContext.MulticlassClassification.Trainers.SdcaMaximumEntropy(
+                        labelColumnName: "Label",
+                        featureColumnName: "Features"))
+                    .Append(_mlContext.Transforms.Conversion.MapKeyToValue("PredictedLabel"));
+                
+                progressCallback?.Invoke("Training model (this may take a moment)...");
+                
+                // Train
+                _trainedModel = pipeline.Fit(splitData.TrainSet);
+                
+                progressCallback?.Invoke("Evaluating model...");
+                
+                // Evaluate
+                var predictions = _trainedModel.Transform(splitData.TestSet);
+                var metrics = _mlContext.MulticlassClassification.Evaluate(predictions, labelColumnName: "Label");
+                var accuracy = metrics.MacroAccuracy;
+                
+                progressCallback?.Invoke("Saving model...");
+                
+                // Save model
+                var modelPath = GetModelPath();
+                _mlContext.Model.Save(_trainedModel, trainingData.Schema, modelPath);
+                
+                // Reload prediction engine
+                _predictionEngine = _mlContext.Model.CreatePredictionEngine<TransformedTrainingInput, TrainingModelOutput>(_trainedModel);
+                _modelLoaded = true;
+                _modelTrainedDate = DateTime.Now;
+                
+                // Cleanup temp file
+                try { File.Delete(tempPath); } catch { }
+                
+                progressCallback?.Invoke("Training completed!");
+                
+                return (true, $"Model trained successfully with {rawRecords.Count} records. Accuracy: {accuracy:P2}", (double?)accuracy);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Training failed: {ex.Message}", (double?)null);
+            }
+        });
+    }
+    
+    private TransformedTrainingInput TransformRecord(CsvTrainingInput input)
+    {
+        // Parse blood pressure (format: "120/80" or similar)
+        float systolic = 120, diastolic = 80;
+        if (!string.IsNullOrEmpty(input.Blood_Pressure))
+        {
+            var bpParts = input.Blood_Pressure.Split('/');
+            if (bpParts.Length == 2)
+            {
+                float.TryParse(bpParts[0].Trim(), out systolic);
+                float.TryParse(bpParts[1].Trim(), out diastolic);
+            }
+        }
+        
+        // Encode gender
+        float genderEncoded = input.Gender?.ToLower() switch
+        {
+            "male" or "m" => 0,
+            "female" or "f" => 1,
+            _ => 0.5f
+        };
+        
+        // Parse symptoms
+        var symptoms = input.Symptoms?.Split(',', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+        var symptomCount = symptoms.Length;
+        var symptomSeverity = CalculateSymptomSeverity(symptoms);
+        
+        // Parse pre-existing conditions
+        var conditions = input.Pre_Existing_Conditions?.ToLower() ?? "";
+        var conditionList = conditions.Split(',', StringSplitOptions.RemoveEmptyEntries);
+        
+        // Map risk level to label (1-4)
+        uint label = input.Risk_Level?.ToLower().Trim() switch
+        {
+            "low" or "non-urgent" or "1" => 1,
+            "medium" or "standard" or "2" => 2,
+            "high" or "urgent" or "3" => 3,
+            "critical" or "emergency" or "4" => 4,
+            _ => 2 // Default to standard
+        };
+        
+        return new TransformedTrainingInput
+        {
+            Age = input.Age,
+            GenderEncoded = genderEncoded,
+            SymptomCount = symptomCount,
+            SymptomSeverity = symptomSeverity,
+            BloodPressureSystolic = systolic,
+            BloodPressureDiastolic = diastolic,
+            Heart_Rate = input.Heart_Rate,
+            Temperature = input.Temperature,
+            PreExistingConditionCount = conditionList.Length,
+            HasDiabetes = conditions.Contains("diabetes") ? 1 : 0,
+            HasHeartDisease = conditions.Contains("heart") ? 1 : 0,
+            HasHypertension = conditions.Contains("hypertension") || conditions.Contains("high blood pressure") ? 1 : 0,
+            Label = label
+        };
+    }
+    
+    /// <summary>
+    /// Detects whether the file uses tabs or commas as separators
+    /// </summary>
+    private char DetectSeparator(string filePath)
+    {
+        try
+        {
+            var firstLine = File.ReadLines(filePath).FirstOrDefault() ?? "";
+            
+            // Count occurrences of potential separators in header
+            int tabCount = firstLine.Count(c => c == '\t');
+            int commaCount = firstLine.Count(c => c == ',');
+            
+            // Use tab if more tabs than commas, otherwise use comma
+            return tabCount > commaCount ? '\t' : ',';
+        }
+        catch
+        {
+            return ','; // Default to comma
+        }
+    }
+    
+    private float CalculateSymptomSeverity(string[] symptoms)
+    {
+        float severity = 0;
+        var severeSymptoms = new[] { "chest pain", "difficulty breathing", "unconscious", "severe", "bleeding", "stroke" };
+        var moderateSymptoms = new[] { "fever", "vomiting", "dizziness", "pain", "nausea", "weakness" };
+        
+        foreach (var symptom in symptoms)
+        {
+            var lower = symptom.ToLower().Trim();
+            if (severeSymptoms.Any(s => lower.Contains(s)))
+                severity += 3;
+            else if (moderateSymptoms.Any(s => lower.Contains(s)))
+                severity += 2;
+            else
+                severity += 1;
+        }
+        
+        return Math.Min(severity / 10f, 1f); // Normalize to 0-1
+    }
+    
+    /// <summary>
+    /// Predicts triage level using ML model or rule-based fallback
+    /// </summary>
+    public RiskPrediction Predict(TriageAssessment assessment, int patientAge)
+    {
+        if (_modelLoaded && _predictionEngine != null)
+        {
+            return PredictWithML(assessment, patientAge);
+        }
+        
+        // Fallback to rule-based prediction (works without trained model)
+        return PredictWithRules(assessment, patientAge);
+    }
+    
+    private TransformedTrainingInput ConvertAssessmentToInput(TriageAssessment assessment, int age)
+    {
+        // Build symptoms string from assessment
+        var symptoms = new List<string>();
+        if (assessment.ChestPain >= SymptomSeverity.Mild) symptoms.Add("chest pain");
+        if (assessment.ShortnessOfBreath >= SymptomSeverity.Mild) symptoms.Add("difficulty breathing");
+        if (assessment.Fever >= SymptomSeverity.Mild) symptoms.Add("fever");
+        if (assessment.Bleeding >= SymptomSeverity.Mild) symptoms.Add("bleeding");
+        if (assessment.AlteredConsciousness >= SymptomSeverity.Mild) symptoms.Add("altered consciousness");
+        if (assessment.PainLevel >= 5) symptoms.Add("pain");
+        
+        var symptomSeverity = CalculateSymptomSeverity(symptoms.ToArray());
+        
+        return new TransformedTrainingInput
+        {
+            Age = age,
+            GenderEncoded = 0.5f, // Default when gender unknown
+            SymptomCount = symptoms.Count,
+            SymptomSeverity = symptomSeverity,
+            BloodPressureSystolic = assessment.BloodPressureSystolic,
+            BloodPressureDiastolic = assessment.BloodPressureDiastolic,
+            Heart_Rate = assessment.HeartRate,
+            Temperature = assessment.Temperature,
+            PreExistingConditionCount = 0, // Not available from assessment
+            HasDiabetes = 0,
+            HasHeartDisease = 0,
+            HasHypertension = assessment.BloodPressureSystolic > 140 ? 1 : 0,
+            Label = 0 // Not used for prediction
+        };
+    }
+    
+    private RiskPrediction PredictWithML(TriageAssessment assessment, int patientAge)
+    {
+        var input = ConvertAssessmentToInput(assessment, patientAge);
+        var output = _predictionEngine!.Predict(input);
+        
+        // Convert label (1-4) to TriageLevel
+        var level = output.PredictedLabel switch
+        {
+            1 => TriageLevel.NonUrgent,
+            2 => TriageLevel.Standard,
+            3 => TriageLevel.Urgent,
+            4 => TriageLevel.Emergency,
+            _ => TriageLevel.Standard
+        };
+        
+        float confidence = output.Score.Length > 0 ? output.Score.Max() : 0.8f;
+        
+        return new RiskPrediction
+        {
+            PredictedLevel = level,
+            RiskScore = CalculateRiskScore(level, confidence),
+            Confidence = confidence,
+            RiskFactors = IdentifyRiskFactorsFromAssessment(assessment, patientAge),
+            Recommendation = GetRecommendation(level)
+        };
+    }
+    
+    private List<string> IdentifyRiskFactorsFromAssessment(TriageAssessment a, int age)
+    {
+        var factors = new List<string>();
+        
+        if (a.OxygenSaturation < 94) factors.Add("Low oxygen saturation");
+        if (a.HeartRate > 100 || a.HeartRate < 60) factors.Add("Abnormal heart rate");
+        if (a.Temperature > 38.5f) factors.Add("Elevated temperature");
+        if (a.ChestPain >= SymptomSeverity.Moderate) factors.Add("Chest pain reported");
+        if (a.ShortnessOfBreath >= SymptomSeverity.Moderate) factors.Add("Breathing difficulty");
+        if (a.PainLevel >= 7) factors.Add("High pain level");
+        if (age > 65) factors.Add("Elderly patient");
+        
+        if (factors.Count == 0) factors.Add("Vitals within normal range");
+        
+        return factors;
+    }
+    
+    /// <summary>
+    /// Rule-based prediction when ML model is not available
+    /// </summary>
+    private RiskPrediction PredictWithRules(TriageAssessment a, int age)
+    {
+        var riskFactors = new List<string>();
+        int urgencyScore = 0;
+        
+        // === EMERGENCY CONDITIONS (Score 90-100) ===
+        
+        // Altered consciousness is always emergency
+        if (a.AlteredConsciousness >= SymptomSeverity.Moderate)
+        {
+            urgencyScore += 40;
+            riskFactors.Add("Altered consciousness");
+        }
+        
+        // Severe chest pain
+        if (a.ChestPain >= SymptomSeverity.Severe)
+        {
+            urgencyScore += 35;
+            riskFactors.Add("Severe chest pain");
+        }
+        
+        // Critically low oxygen
+        if (a.OxygenSaturation < 90)
+        {
+            urgencyScore += 35;
+            riskFactors.Add($"Critical O2 saturation: {a.OxygenSaturation}%");
+        }
+        
+        // Severe breathing difficulty
+        if (a.ShortnessOfBreath >= SymptomSeverity.Severe)
+        {
+            urgencyScore += 30;
+            riskFactors.Add("Severe breathing difficulty");
+        }
+        
+        // === URGENT CONDITIONS (Score 60-89) ===
+        
+        // Abnormal heart rate
+        if (a.HeartRate > 120 || a.HeartRate < 50)
+        {
+            urgencyScore += 20;
+            riskFactors.Add($"Abnormal heart rate: {a.HeartRate} bpm");
+        }
+        
+        // High blood pressure
+        if (a.BloodPressureSystolic > 180 || a.BloodPressureSystolic < 90)
+        {
+            urgencyScore += 18;
+            riskFactors.Add($"Abnormal BP: {a.BloodPressureSystolic}/{a.BloodPressureDiastolic}");
+        }
+        
+        // High fever
+        if (a.Temperature > 39.5f)
+        {
+            urgencyScore += 15;
+            riskFactors.Add($"High fever: {a.Temperature}°C");
+        }
+        
+        // Moderate bleeding
+        if (a.Bleeding >= SymptomSeverity.Moderate)
+        {
+            urgencyScore += 18;
+            riskFactors.Add("Significant bleeding");
+        }
+        
+        // Severe pain
+        if (a.PainLevel >= 8)
+        {
+            urgencyScore += 15;
+            riskFactors.Add($"Severe pain level: {a.PainLevel}/10");
+        }
+        
+        // Low oxygen (but not critical)
+        if (a.OxygenSaturation >= 90 && a.OxygenSaturation < 94)
+        {
+            urgencyScore += 12;
+            riskFactors.Add($"Low O2 saturation: {a.OxygenSaturation}%");
+        }
+        
+        // === STANDARD CONDITIONS (Score 30-59) ===
+        
+        // Mild chest pain
+        if (a.ChestPain == SymptomSeverity.Mild || a.ChestPain == SymptomSeverity.Moderate)
+        {
+            urgencyScore += 12;
+            riskFactors.Add("Chest discomfort");
+        }
+        
+        // Moderate fever
+        if (a.Temperature >= 38.5f && a.Temperature <= 39.5f)
+        {
+            urgencyScore += 8;
+            riskFactors.Add($"Fever: {a.Temperature}°C");
+        }
+        
+        // Moderate pain
+        if (a.PainLevel >= 5 && a.PainLevel < 8)
+        {
+            urgencyScore += 8;
+            riskFactors.Add($"Moderate pain: {a.PainLevel}/10");
+        }
+        
+        // === AGE ADJUSTMENTS ===
+        if (age > 65)
+        {
+            urgencyScore += 10;
+            riskFactors.Add("Elderly patient (>65 years)");
+        }
+        else if (age < 5)
+        {
+            urgencyScore += 8;
+            riskFactors.Add("Pediatric patient (<5 years)");
+        }
+        
+        // Normalize score to 0-1
+        float riskScore = Math.Min(urgencyScore / 100f, 1f);
+        
+        // Determine triage level
+        TriageLevel level = urgencyScore switch
+        {
+            >= 70 => TriageLevel.Emergency,
+            >= 45 => TriageLevel.Urgent,
+            >= 20 => TriageLevel.Standard,
+            _ => TriageLevel.NonUrgent
+        };
+        
+        // If no risk factors identified, add a default
+        if (riskFactors.Count == 0)
+        {
+            riskFactors.Add("Vitals within normal range");
+        }
+        
+        return new RiskPrediction
+        {
+            PredictedLevel = level,
+            RiskScore = riskScore,
+            Confidence = 0.85f, // Rule-based has fixed confidence
+            RiskFactors = riskFactors,
+            Recommendation = GetRecommendation(level)
+        };
+    }
+    
+    private float CalculateRiskScore(TriageLevel level, float confidence)
+    {
+        float baseScore = level switch
+        {
+            TriageLevel.Emergency => 0.9f,
+            TriageLevel.Urgent => 0.7f,
+            TriageLevel.Standard => 0.4f,
+            TriageLevel.NonUrgent => 0.2f,
+            _ => 0.5f
+        };
+        
+        return baseScore * confidence;
+    }
+    
+    private string GetRecommendation(TriageLevel level)
+    {
+        return level switch
+        {
+            TriageLevel.Emergency => "IMMEDIATE medical attention required. Alert trauma/resuscitation team.",
+            TriageLevel.Urgent => "Patient needs to be seen within 15 minutes by a physician.",
+            TriageLevel.Standard => "Patient can wait up to 1 hour. Monitor for any changes.",
+            TriageLevel.NonUrgent => "Patient can safely wait. Consider walk-in clinic if available.",
+            _ => "Please complete assessment to determine triage level."
+        };
+    }
+}

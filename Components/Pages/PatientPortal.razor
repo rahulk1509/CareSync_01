@@ -1,0 +1,269 @@
+@page "/patient"
+@inject NavigationManager Navigation
+@inject HospitalTriageAI.Services.IAuthService AuthService
+
+<div class="patient-portal">
+    @if (_loading)
+    {
+        <div class="loading-state">
+            <div class="spinner-lg"></div>
+            <p>Loading...</p>
+        </div>
+    }
+    else if (!AuthService.IsAuthenticated)
+    {
+        <!-- Patient Login Form -->
+        <div class="login-container">
+            <div class="portal-header">
+                <h1>Patient Portal</h1>
+                <p class="subtitle">Sign in to access your health records and triage services</p>
+            </div>
+
+            <div class="login-card">
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" @bind="_email" class="form-input" placeholder="Enter your email" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" @bind="_password" class="form-input" placeholder="Enter your password" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger">@_error</div>
+                }
+
+                <button class="btn btn-primary btn-full" @onclick="HandleLogin" disabled="@_submitting">
+                    @if (_submitting)
+                    {
+                        <span class="spinner"></span>
+                        <span>Signing in...</span>
+                    }
+                    else
+                    {
+                        <span>Sign In</span>
+                    }
+                </button>
+
+                <div class="login-footer">
+                    <p>Don't have an account? <a href="/signup">Create Account</a></p>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Patient Portal Content -->
+        <div class="portal-header">
+            <div class="header-row">
+                <div>
+                    <h1>Patient Portal</h1>
+                    <p class="subtitle">Welcome back, @AuthService.CurrentUser?.FullName</p>
+                </div>
+                <button class="btn btn-outline" @onclick="HandleLogout">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <div class="portal-grid">
+            <div class="portal-card" @onclick="@(() => Navigation.NavigateTo("/intake"))">
+                <div class="card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <line x1="10" y1="9" x2="8" y2="9"/>
+                    </svg>
+                </div>
+                <h3>New Triage Assessment</h3>
+                <p>Start a new symptom assessment and get AI-powered triage recommendations</p>
+            </div>
+
+            <div class="portal-card" @onclick="@(() => Navigation.NavigateTo("/triage"))">
+                <div class="card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <h3>Triage Results</h3>
+                <p>View your assessment results and recommended care level</p>
+            </div>
+
+            <div class="portal-card" @onclick="@(() => Navigation.NavigateTo("/about"))">
+                <div class="card-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12" y2="8"/>
+                    </svg>
+                </div>
+                <h3>About CareSync</h3>
+                <p>Learn how our AI triage system works</p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string? _error;
+    private bool _submitting = false;
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthService.TryRestoreSessionAsync();
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        _submitting = true;
+        _error = null;
+
+        var result = await AuthService.LoginAsync(_email, _password);
+        if (!result.Success)
+        {
+            _error = result.Message;
+        }
+
+        _submitting = false;
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+    }
+}
+
+<style>
+    .patient-portal {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .loading-state {
+        text-align: center;
+        padding: var(--space-12);
+    }
+
+    .login-container {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .login-card {
+        background: var(--white);
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+    }
+
+    .login-footer {
+        text-align: center;
+        margin-top: var(--space-4);
+        padding-top: var(--space-4);
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .login-footer p {
+        margin: 0;
+        color: var(--gray-500);
+        font-size: 0.875rem;
+    }
+
+    .login-footer a {
+        color: var(--primary);
+        font-weight: 500;
+    }
+
+    .btn-full {
+        width: 100%;
+        margin-top: var(--space-4);
+    }
+
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .portal-header {
+        text-align: center;
+        margin-bottom: var(--space-8);
+    }
+
+    .header-row .portal-header,
+    .header-row > div {
+        text-align: left;
+    }
+
+    .portal-header h1 {
+        font-size: 2rem;
+        color: var(--gray-900);
+        margin-bottom: var(--space-2);
+    }
+
+    .portal-header .subtitle {
+        color: var(--gray-500);
+        font-size: 1.125rem;
+    }
+
+    .portal-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-6);
+    }
+
+    .portal-card {
+        background: var(--white);
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .portal-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .card-icon {
+        width: 56px;
+        height: 56px;
+        background: var(--primary-bg);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: var(--space-4);
+        color: var(--primary);
+    }
+
+    .portal-card h3 {
+        font-size: 1.125rem;
+        color: var(--gray-900);
+        margin-bottom: var(--space-2);
+    }
+
+    .portal-card p {
+        color: var(--gray-500);
+        font-size: 0.875rem;
+        margin: 0;
+    }
+</style>

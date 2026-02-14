@@ -1,0 +1,12 @@
+<api type="debug" assembly-name="HospitalTriageAI" mvid="d20a6f91a42d4301920919f264386f7b">
+  <java-to-managed>
+    <entry java-name="crc64c20f41a49ec28b65/MainActivity" managed-name="HospitalTriageAI.MainActivity, HospitalTriageAI" managed-type-token-id="33554445" />
+    <entry java-name="crc64c20f41a49ec28b65/MainActivity_BackPressedCallback" managed-name="HospitalTriageAI.MainActivity+BackPressedCallback, HospitalTriageAI" managed-type-token-id="33554513" />
+    <entry java-name="crc64c20f41a49ec28b65/MainApplication" managed-name="HospitalTriageAI.MainApplication, HospitalTriageAI" managed-type-token-id="33554446" />
+  </java-to-managed>
+  <managed-to-java>
+    <entry java-name="crc64c20f41a49ec28b65/MainActivity" managed-name="HospitalTriageAI.MainActivity, HospitalTriageAI" managed-type-token-id="33554445" />
+    <entry java-name="crc64c20f41a49ec28b65/MainActivity_BackPressedCallback" managed-name="HospitalTriageAI.MainActivity+BackPressedCallback, HospitalTriageAI" managed-type-token-id="33554513" />
+    <entry java-name="crc64c20f41a49ec28b65/MainApplication" managed-name="HospitalTriageAI.MainApplication, HospitalTriageAI" managed-type-token-id="33554446" />
+  </managed-to-java>
+</api>

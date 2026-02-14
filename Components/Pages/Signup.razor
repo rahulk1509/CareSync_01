@@ -1,0 +1,220 @@
+@page "/signup"
+@inject NavigationManager Navigation
+@inject HospitalTriageAI.Services.IAuthService AuthService
+
+<div class="signup-page">
+    <div class="page-header">
+        <h1>Create Account</h1>
+        <p>Register for access to TriageAI system</p>
+    </div>
+
+    <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+
+        <div class="card form-card">
+            <div class="card-header">Account Information</div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Account Type *</label>
+                    <InputSelect @bind-Value="_model.Role" class="form-input">
+                        <option value="">Select role...</option>
+                        <option value="Patient">Patient</option>
+                    </InputSelect>
+                    <ValidationMessage For="@(() => _model.Role)" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <InputText @bind-Value="_model.FullName" class="form-input" placeholder="Enter your full name" />
+                    <ValidationMessage For="@(() => _model.FullName)" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email Address *</label>
+                    <InputText @bind-Value="_model.Email" class="form-input" placeholder="Enter your email" type="email" />
+                    <ValidationMessage For="@(() => _model.Email)" />
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Password *</label>
+                        <InputText @bind-Value="_model.Password" class="form-input" placeholder="Create password" type="password" />
+                        <ValidationMessage For="@(() => _model.Password)" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirm Password *</label>
+                        <InputText @bind-Value="_model.ConfirmPassword" class="form-input" placeholder="Confirm password" type="password" />
+                        <ValidationMessage For="@(() => _model.ConfirmPassword)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger">@_error</div>
+        }
+
+        @if (!string.IsNullOrEmpty(_success))
+        {
+            <div class="alert alert-success">@_success</div>
+        }
+
+        <div class="form-actions">
+            <a href="/login" class="btn btn-outline">Already have an account?</a>
+            <button type="submit" class="btn btn-accent" disabled="@_submitting">
+                @if (_submitting)
+                {
+                    <span class="spinner"></span>
+                    <span>Creating...</span>
+                }
+                else
+                {
+                    <span>Register</span>
+                }
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    private SignupModel _model = new();
+    private bool _submitting = false;
+    private string? _error;
+    private string? _success;
+
+    private async Task HandleSubmit()
+    {
+        _submitting = true;
+        _error = null;
+        _success = null;
+
+        try
+        {
+            // Validate passwords match
+            if (_model.Password != _model.ConfirmPassword)
+            {
+                _error = "Passwords do not match.";
+                return;
+            }
+
+            // Parse role
+            var role = _model.Role == "Admin" 
+                ? HospitalTriageAI.Models.UserRole.Admin 
+                : HospitalTriageAI.Models.UserRole.Patient;
+
+            // Register user via AuthService
+            var result = await AuthService.RegisterAsync(_model.Email, _model.Password, _model.FullName, role);
+            
+            if (result.Success)
+            {
+                _success = "Account created successfully! Redirecting to login...";
+                await Task.Delay(1500);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                _error = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"Registration failed: {ex.Message}";
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    public class SignupModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Role is required")]
+        public string Role { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Full name is required")]
+        public string FullName { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Email is required")]
+        [System.ComponentModel.DataAnnotations.EmailAddress(ErrorMessage = "Invalid email address")]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Password is required")]
+        [System.ComponentModel.DataAnnotations.MinLength(6, ErrorMessage = "Password must be at least 6 characters")]
+        public string Password { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Please confirm your password")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}
+
+<style>
+    .signup-page {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        margin-bottom: var(--space-8);
+        text-align: center;
+    }
+
+    .page-header h1 {
+        margin-bottom: var(--space-2);
+    }
+
+    .page-header p {
+        color: var(--gray-500);
+        margin: 0;
+    }
+
+    .form-card {
+        margin-bottom: var(--space-6);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-4);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-3);
+        padding-top: var(--space-4);
+    }
+
+    .alert-success {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: #059669;
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-4);
+    }
+
+    .alert-danger {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #dc2626;
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-4);
+    }
+
+    @@media (max-width: 640px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .form-actions .btn {
+            width: 100%;
+        }
+    }
+</style>

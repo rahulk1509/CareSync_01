@@ -1,0 +1,667 @@
+@page "/admin"
+@inject NavigationManager Navigation
+@inject HospitalTriageAI.Services.IAuthService AuthService
+@inject HospitalTriageAI.Services.IModelTrainingService ModelTrainingService
+
+<div class="admin-page">
+    @if (_loading)
+    {
+        <div class="loading-state">
+            <div class="spinner-lg"></div>
+            <p>Loading...</p>
+        </div>
+    }
+    else if (!AuthService.IsAdmin)
+    {
+        <!-- Modern Admin Login Form -->
+        <div class="login-safe-area">
+            <div class="login-container">
+                <!-- App Branding -->
+                <div class="login-branding">
+                    <div class="brand-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                            <rect width="24" height="24" rx="6" fill="#0D9488"/>
+                            <path d="M12 6v12M6 12h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h1 class="brand-title">CareSync</h1>
+                    <p class="brand-subtitle">Admin Portal</p>
+                </div>
+
+                <!-- Login Card -->
+                <div class="login-card">
+                    <div class="form-group">
+                        <label class="form-label">Admin Email</label>
+                        <input type="email" 
+                               @bind="_email" 
+                               class="form-input" 
+                               placeholder="Enter your email" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" 
+                               @bind="_password" 
+                               class="form-input" 
+                               placeholder="Enter your password" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_error))
+                    {
+                        <div class="alert-error">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span>@_error</span>
+                        </div>
+                    }
+
+                    <button class="login-button" @onclick="HandleLogin" disabled="@_submitting">
+                        @if (_submitting)
+                        {
+                            <span class="button-spinner"></span>
+                            <span>Signing in...</span>
+                        }
+                        else
+                        {
+                            <span>Login</span>
+                        }
+                    </button>
+                </div>
+
+                <!-- Demo Credentials -->
+                <div class="demo-credentials">
+                    <p><strong>Demo:</strong> admin@triageai.com / admin123</p>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Admin Portal Content -->
+        <div class="page-header">
+            <div class="header-row">
+                <div>
+                    <h1>Admin Portal</h1>
+                    <p>Welcome, @AuthService.CurrentUser?.FullName</p>
+                </div>
+                <button class="btn btn-outline" @onclick="HandleLogout">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-grid">
+            <div class="card admin-card clickable" @onclick="@(() => Navigation.NavigateTo("/admin-dashboard"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                    Admin Dashboard
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Full dashboard with patient queue, stats, and doctor assignments.</p>
+                    <span class="badge-active">Active</span>
+                </div>
+            </div>
+
+            <div class="card admin-card clickable" @onclick="@(() => Navigation.NavigateTo("/doctors"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Doctor Management
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">View and manage doctor schedules and availability status.</p>
+                    <span class="badge-active">Active</span>
+                </div>
+            </div>
+
+            <div class="card admin-card clickable" @onclick="@(() => Navigation.NavigateTo("/reports"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    AI PDF Reports
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Generate and view AI-powered patient assessment reports.</p>
+                    <span class="badge-active">Active</span>
+                </div>
+            </div>
+
+            <div class="card admin-card clickable" @onclick="@(() => Navigation.NavigateTo("/ai-model"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    AI Model Management
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Train, manage and monitor the AI triage prediction model.</p>
+                    @if (ModelTrainingService.HasTrainedModel)
+                    {
+                        <span class="badge-active">Model Ready</span>
+                    }
+                    else
+                    {
+                        <span class="badge-warning">No Model</span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string? _error;
+    private bool _submitting = false;
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthService.TryRestoreSessionAsync();
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        _submitting = true;
+        _error = null;
+
+        var result = await AuthService.LoginAsync(_email, _password);
+        if (result.Success)
+        {
+            if (!AuthService.IsAdmin)
+            {
+                await AuthService.LogoutAsync();
+                _error = "Access denied. Admin credentials required.";
+            }
+        }
+        else
+        {
+            _error = result.Message;
+        }
+
+        _submitting = false;
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+    }
+}
+
+<style>
+    /* Safe Area & Page Layout */
+    .admin-page {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+
+    .login-safe-area {
+        padding-top: env(safe-area-inset-top, 20px);
+        padding-bottom: env(safe-area-inset-bottom, 20px);
+        padding-left: env(safe-area-inset-left, 0);
+        padding-right: env(safe-area-inset-right, 0);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .login-container {
+        width: 100%;
+        max-width: 400px;
+        padding: 0 24px;
+        margin-top: 60px;
+        margin-bottom: 40px;
+    }
+
+    /* Branding Section */
+    .login-branding {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .brand-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+
+    .brand-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 4px 0;
+        letter-spacing: -0.5px;
+    }
+
+    .brand-subtitle {
+        font-size: 15px;
+        color: #64748b;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    /* Login Card */
+    .login-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08),
+                    0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    /* Form Elements */
+    .login-card .form-group {
+        margin-bottom: 20px;
+    }
+
+    .login-card .form-label {
+        display: block;
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+
+    .login-card .form-input {
+        width: 100%;
+        height: 48px;
+        padding: 0 16px;
+        font-size: 16px;
+        color: #1e293b;
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        outline: none;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+    }
+
+    .login-card .form-input::placeholder {
+        color: #94a3b8;
+    }
+
+    .login-card .form-input:focus {
+        border-color: #0d9488;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+    }
+
+    /* Error Alert */
+    .alert-error {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 10px;
+        color: #dc2626;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    /* Login Button */
+    .login-button {
+        width: 100%;
+        height: 50px;
+        margin-top: 30px;
+        background: #0d9488;
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 600;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .login-button:hover:not(:disabled) {
+        background: #0f766e;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+    }
+
+    .login-button:active:not(:disabled) {
+        transform: translateY(0);
+    }
+
+    .login-button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .button-spinner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Demo Credentials */
+    .demo-credentials {
+        text-align: center;
+        margin-top: 24px;
+        padding: 12px 16px;
+        background: rgba(13, 148, 136, 0.08);
+        border-radius: 10px;
+    }
+
+    .demo-credentials p {
+        margin: 0;
+        font-size: 13px;
+        color: #0d9488;
+    }
+
+    /* Loading State */
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 24px;
+    }
+
+    .loading-state p {
+        margin-top: 16px;
+        color: #64748b;
+        font-size: 15px;
+    }
+
+    /* Admin Portal Content (logged in) */
+    .admin-content {
+        padding: 24px;
+        padding-top: calc(env(safe-area-inset-top, 20px) + 24px);
+    }
+
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .page-header {
+        margin-bottom: 24px;
+    }
+
+    .page-header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0 0 4px 0;
+    }
+
+    .page-header p {
+        color: #64748b;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    .admin-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .admin-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .admin-card.clickable {
+        cursor: pointer;
+    }
+
+    .admin-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+
+    .admin-card .card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+    .card-desc {
+        color: #64748b;
+        font-size: 13px;
+        margin-bottom: 12px;
+        line-height: 1.5;
+    }
+
+    .badge-active {
+        display: inline-block;
+        background: rgba(34, 197, 94, 0.1);
+        color: #15803D;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .badge-warning {
+        display: inline-block;
+        background: rgba(245, 158, 11, 0.1);
+        color: #D97706;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 24px;
+    }
+    
+    .modal-content {
+        background: #ffffff;
+        border-radius: 16px;
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 24px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .modal-header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #64748b;
+        padding: 0;
+        line-height: 1;
+    }
+    
+    .modal-close:hover {
+        color: #1e293b;
+    }
+    
+    .modal-body {
+        padding: 24px;
+    }
+    
+    .upload-section p {
+        color: #64748b;
+        margin-bottom: 16px;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    
+    .csv-format {
+        background: #f8fafc;
+        padding: 12px;
+        border-radius: 10px;
+        margin-bottom: 16px;
+        overflow-x: auto;
+    }
+    
+    .csv-format code {
+        font-size: 12px;
+        color: #475569;
+        white-space: nowrap;
+    }
+    
+    .hint {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 16px;
+    }
+    
+    .btn-upload {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        height: 48px;
+        background: #0d9488;
+        color: #ffffff;
+        border: none;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    
+    .training-progress {
+        text-align: center;
+        padding: 40px 20px;
+    }
+    
+    .progress-text {
+        margin-top: 16px;
+        color: #64748b;
+        font-size: 14px;
+    }
+    
+    .training-success {
+        text-align: center;
+        padding: 20px;
+    }
+    
+    .training-success svg {
+        margin-bottom: 16px;
+    }
+    
+    .training-success h3 {
+        color: #15803D;
+        margin-bottom: 8px;
+        font-size: 18px;
+    }
+    
+    .training-success p {
+        color: #64748b;
+        margin-bottom: 12px;
+        font-size: 14px;
+    }
+    
+    .training-success .accuracy {
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .training-success .accuracy strong {
+        color: #0d9488;
+    }
+
+    /* Mobile Responsive */
+    @@media (max-width: 640px) {
+        .login-container {
+            margin-top: 40px;
+        }
+
+        .admin-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .header-row {
+            flex-direction: column;
+        }
+    }
+
+    @@media (max-width: 380px) {
+        .login-container {
+            padding: 0 16px;
+        }
+
+        .login-card {
+            padding: 20px 16px;
+        }
+    }
+</style>

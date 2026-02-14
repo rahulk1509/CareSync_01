@@ -1,0 +1,254 @@
+@page "/reports"
+@inject HospitalTriageAI.Services.IPatientService PatientService
+@inject HospitalTriageAI.Services.IAuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="reports-page">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>AI PDF Reports</h1>
+            <p>Generate and view AI-powered patient assessment reports</p>
+        </div>
+        <a href="/admin" class="btn btn-outline">Back to Admin</a>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="loading-state">
+            <p>Loading patients...</p>
+        </div>
+    }
+    else if (!AuthService.IsAdmin)
+    {
+        <div class="access-denied">
+            <h2>Access Denied</h2>
+            <p>You must be logged in as an admin to view reports.</p>
+            <a href="/admin" class="btn btn-primary">Go to Admin Login</a>
+        </div>
+    }
+    else if (_patients == null || !_patients.Any())
+    {
+        <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+            </svg>
+            <h3>No Patients Found</h3>
+            <p>There are no patients in the system yet.</p>
+        </div>
+    }
+    else
+    {
+        <div class="patients-table-container">
+            <table class="patients-table">
+                <thead>
+                    <tr>
+                        <th>Patient Name</th>
+                        <th>Email</th>
+                        <th>Risk Level</th>
+                        <th>Submitted</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var patient in _patients)
+                    {
+                        <tr>
+                            <td>@patient.FullName</td>
+                            <td>@patient.Email</td>
+                            <td>
+                                <span class="risk-badge @GetRiskClass(patient.RiskPercentage ?? 0)">
+                                    @GetRiskLevel(patient.RiskPercentage ?? 0)
+                                </span>
+                            </td>
+                            <td>@patient.CreatedAt.ToString("MMM dd, yyyy")</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" @onclick="@(() => ViewReport(patient.Id))">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14,2 14,8 20,8"/>
+                                    </svg>
+                                    View Report
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<HospitalTriageAI.Models.Patient>? _patients;
+    private bool _loading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthService.TryRestoreSessionAsync();
+            if (AuthService.IsAdmin)
+            {
+                _patients = await PatientService.GetAllPatientsAsync();
+            }
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ViewReport(int patientId)
+    {
+        Navigation.NavigateTo($"/patient-report/{patientId}");
+    }
+
+    private string GetRiskLevel(float score)
+    {
+        return score switch
+        {
+            >= 70 => "High",
+            >= 40 => "Medium",
+            _ => "Low"
+        };
+    }
+
+    private string GetRiskClass(float score)
+    {
+        return score switch
+        {
+            >= 70 => "risk-high",
+            >= 40 => "risk-medium",
+            _ => "risk-low"
+        };
+    }
+}
+
+<style>
+    .reports-page {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-8);
+    }
+
+    .header-content h1 {
+        margin-bottom: var(--space-2);
+    }
+
+    .header-content p {
+        color: var(--gray-500);
+        margin: 0;
+    }
+
+    .loading-state,
+    .empty-state,
+    .access-denied {
+        text-align: center;
+        padding: var(--space-12);
+        background: var(--white);
+        border: 2px solid var(--primary-border);
+        border-radius: var(--radius-lg);
+    }
+
+    .empty-state svg,
+    .access-denied svg {
+        color: var(--gray-400);
+        margin-bottom: var(--space-4);
+    }
+
+    .empty-state h3,
+    .access-denied h2 {
+        margin-bottom: var(--space-2);
+    }
+
+    .empty-state p,
+    .access-denied p {
+        color: var(--gray-500);
+        margin-bottom: var(--space-4);
+    }
+
+    .patients-table-container {
+        background: var(--white);
+        border: 2px solid var(--primary-border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .patients-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .patients-table th,
+    .patients-table td {
+        padding: var(--space-4);
+        text-align: left;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .patients-table th {
+        background: var(--primary);
+        color: var(--white);
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .patients-table tbody tr:hover {
+        background: var(--gray-50);
+    }
+
+    .patients-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .risk-badge {
+        display: inline-block;
+        padding: var(--space-1) var(--space-3);
+        border-radius: var(--radius-full);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .risk-high {
+        background: rgba(220, 38, 38, 0.1);
+        color: #DC2626;
+    }
+
+    .risk-medium {
+        background: rgba(245, 158, 11, 0.1);
+        color: #D97706;
+    }
+
+    .risk-low {
+        background: rgba(34, 197, 94, 0.1);
+        color: #16A34A;
+    }
+
+    .btn-sm {
+        padding: var(--space-2) var(--space-3);
+        font-size: 0.8125rem;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    @@media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            gap: var(--space-4);
+        }
+
+        .patients-table-container {
+            overflow-x: auto;
+        }
+
+        .patients-table {
+            min-width: 600px;
+        }
+    }
+</style>

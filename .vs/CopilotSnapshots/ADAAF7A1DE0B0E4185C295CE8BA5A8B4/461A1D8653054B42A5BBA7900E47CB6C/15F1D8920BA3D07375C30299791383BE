@@ -1,0 +1,643 @@
+﻿@page "/admin"
+@inject NavigationManager Navigation
+@inject HospitalTriageAI.Services.IAuthService AuthService
+@inject HospitalTriageAI.Services.IModelTrainingService ModelTrainingService
+
+<div class="admin-page">
+    @if (_loading)
+    {
+        <div class="loading-state">
+            <div class="spinner-lg"></div>
+            <p>Loading...</p>
+        </div>
+    }
+    else if (!AuthService.IsAdmin)
+    {
+        <!-- Modern Admin Login Form -->
+        <div class="login-safe-area">
+            <div class="login-container">
+                <!-- App Branding -->
+                <div class="login-branding">
+                    <div class="brand-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                            <rect width="24" height="24" rx="6" fill="#0D9488"/>
+                            <path d="M12 6v12M6 12h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h1 class="brand-title">CareSync</h1>
+                    <p class="brand-subtitle">Admin Portal</p>
+                </div>
+
+                <!-- Login Card -->
+                <div class="login-card">
+                    <div class="form-group">
+                        <label class="form-label">Admin Email</label>
+                        <input type="email" 
+                               @bind="_email" 
+                               class="form-input" 
+                               placeholder="Enter your email" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" 
+                               @bind="_password" 
+                               class="form-input" 
+                               placeholder="Enter your password" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_error))
+                    {
+                        <div class="alert-error">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <span>@_error</span>
+                        </div>
+                    }
+
+                    <button class="login-button" @onclick="HandleLogin" disabled="@_submitting">
+                        @if (_submitting)
+                        {
+                            <span class="button-spinner"></span>
+                            <span>Signing in...</span>
+                        }
+                        else
+                        {
+                            <span>Login</span>
+                        }
+                    </button>
+                </div>
+
+                <!-- Demo Credentials -->
+                <div class="demo-credentials">
+                    <p><strong>Demo:</strong> admin@triageai.com / admin123</p>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Admin Portal Content -->
+        <div class="page-header">
+            <div class="header-row">
+                <div>
+                    <h1>Admin Portal</h1>
+                    <p>Welcome, @AuthService.CurrentUser?.FullName</p>
+                </div>
+                <button class="btn btn-outline" @onclick="HandleLogout">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/>
+                        <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                    Logout
+                </button>
+            </div>
+        </div>
+
+        <div class="admin-grid">
+            <div class="card admin-card clickable" @onclick="@(() => Navigation.NavigateTo("/admin-dashboard"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                    Admin Dashboard
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Full dashboard with patient queue, stats, and doctor assignments.</p>
+                    <span class="badge-active">Active</span>
+                </div>
+            </div>
+
+            <div class="card admin-card clickable" @onclick="@(() => Navigation.NavigateTo("/doctors"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Doctor Management
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">View and manage doctor schedules and availability status.</p>
+                    <span class="badge-active">Active</span>
+                </div>
+            </div>
+
+            <div class="card admin-card clickable" @onclick="@(() => Navigation.NavigateTo("/reports"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    AI PDF Reports
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Generate and view AI-powered patient assessment reports.</p>
+                    <span class="badge-active">Active</span>
+                </div>
+            </div>
+
+            <div class="card admin-card clickable" @onclick="HandleModelTraining">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    AI Model Training
+                </div>
+                <div class="card-body">
+                    <p class="card-desc">Upload CSV file to train the AI triage model.</p>
+                    @if (ModelTrainingService.HasTrainedModel)
+                    {
+                        <span class="badge-active">Model Ready</span>
+                    }
+                    else
+                    {
+                        <span class="badge-warning">No Model</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* Training Modal *@
+        @if (_showTrainingModal)
+        {
+            <div class="modal-overlay" @onclick="CloseTrainingModal">
+                <div class="modal-content" @onclick:stopPropagation="true">
+                    <div class="modal-header">
+                        <h2>Train AI Model</h2>
+                        <button class="modal-close" @onclick="CloseTrainingModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        @if (_trainingCompleted)
+                        {
+                            <div class="training-success">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                <h3>Training Completed!</h3>
+                                <p>@_trainingMessage</p>
+                                @if (_trainingAccuracy.HasValue)
+                                {
+                                    <p class="accuracy">Model Accuracy: <strong>@(_trainingAccuracy.Value.ToString("P1"))</strong></p>
+                                }
+                                <button class="btn btn-accent" @onclick="CloseTrainingModal">Done</button>
+                            </div>
+                        }
+                        else if (_isTraining)
+                        {
+                            <div class="training-progress">
+                                <div class="spinner-lg"></div>
+                                <p class="progress-text">@_trainingProgress</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="upload-section">
+                                <p>Upload a CSV file to train the AI model. The file should contain the following columns:</p>
+                                <div class="csv-format">
+                                    <code>Patient_ID, Age, Gender, Symptoms, Blood_Pressure, Heart_Rate, Temperature, Pre_Existing_Conditions, Risk_Level</code>
+                                </div>
+                                <p class="hint">Risk_Level should be: Low, Medium, High, or Critical</p>
+                                
+                                @if (!string.IsNullOrEmpty(_uploadError))
+                                {
+                                    <div class="alert alert-danger">@_uploadError</div>
+                                }
+                                
+                                <button class="btn btn-accent btn-upload" @onclick="SelectCsvFile" disabled="@_isTraining">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                    Select CSV File
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string? _error;
+    private bool _submitting = false;
+    private bool _loading = true;
+    
+    // Training modal state
+    private bool _showTrainingModal = false;
+    private bool _isTraining = false;
+    private bool _trainingCompleted = false;
+    private string _trainingProgress = "";
+    private string _trainingMessage = "";
+    private double? _trainingAccuracy;
+    private string? _uploadError;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthService.TryRestoreSessionAsync();
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        _submitting = true;
+        _error = null;
+
+        var result = await AuthService.LoginAsync(_email, _password);
+        if (result.Success)
+        {
+            if (!AuthService.IsAdmin)
+            {
+                await AuthService.LogoutAsync();
+                _error = "Access denied. Admin credentials required.";
+            }
+        }
+        else
+        {
+            _error = result.Message;
+        }
+
+        _submitting = false;
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+    }
+    
+    private void HandleModelTraining()
+    {
+        _showTrainingModal = true;
+        _trainingCompleted = false;
+        _isTraining = false;
+        _trainingProgress = "";
+        _trainingMessage = "";
+        _trainingAccuracy = null;
+        _uploadError = null;
+    }
+    
+    private void CloseTrainingModal()
+    {
+        _showTrainingModal = false;
+    }
+    
+    private async Task SelectCsvFile()
+    {
+        try
+        {
+            _uploadError = null;
+            
+            var customFileType = new FilePickerFileType(
+                new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.WinUI, new[] { ".csv" } },
+                    { DevicePlatform.Android, new[] { "text/csv", "text/comma-separated-values", "application/csv" } },
+                    { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
+                    { DevicePlatform.MacCatalyst, new[] { "public.comma-separated-values-text" } }
+                });
+            
+            var options = new PickOptions
+            {
+                PickerTitle = "Select CSV file for training",
+                FileTypes = customFileType
+            };
+            
+            var result = await FilePicker.Default.PickAsync(options);
+            
+            if (result != null)
+            {
+                await TrainModelFromFile(result);
+            }
+        }
+        catch (Exception ex)
+        {
+            _uploadError = $"Error selecting file: {ex.Message}";
+        }
+    }
+    
+    private async Task TrainModelFromFile(FileResult file)
+    {
+        _isTraining = true;
+        _trainingProgress = "Reading file...";
+        StateHasChanged();
+        
+        try
+        {
+            using var stream = await file.OpenReadAsync();
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+            
+            var trainingResult = await ModelTrainingService.TrainFromCsvAsync(
+                memoryStream, 
+                progress =>
+                {
+                    _trainingProgress = progress;
+                    InvokeAsync(StateHasChanged);
+                });
+            
+            if (trainingResult.Success)
+            {
+                _trainingCompleted = true;
+                _trainingMessage = trainingResult.Message;
+                _trainingAccuracy = trainingResult.Accuracy;
+            }
+            else
+            {
+                _uploadError = trainingResult.Message;
+                _isTraining = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _uploadError = $"Training failed: {ex.Message}";
+            _isTraining = false;
+        }
+        
+        StateHasChanged();
+    }
+}
+
+<style>
+    .admin-page {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .loading-state {
+        text-align: center;
+        padding: var(--space-12);
+    }
+
+    .login-container {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .login-card {
+        background: var(--white);
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+    }
+
+    .demo-hint {
+        text-align: center;
+        margin-top: var(--space-4);
+        padding: var(--space-3);
+        background: var(--gray-50);
+        border-radius: var(--radius-md);
+        font-size: 0.8125rem;
+        color: var(--gray-600);
+    }
+
+    .btn-full {
+        width: 100%;
+        margin-top: var(--space-4);
+    }
+
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .page-header {
+        margin-bottom: var(--space-8);
+    }
+
+    .page-header.centered {
+        text-align: center;
+    }
+
+    .page-header h1 {
+        margin-bottom: var(--space-2);
+    }
+
+    .page-header p {
+        color: var(--gray-500);
+        margin: 0;
+    }
+
+    .admin-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-6);
+        margin-bottom: var(--space-8);
+    }
+
+    .admin-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .admin-card.clickable {
+        cursor: pointer;
+    }
+
+    .admin-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+
+    .admin-card .card-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .card-desc {
+        color: var(--gray-500);
+        font-size: 0.9375rem;
+        margin-bottom: var(--space-4);
+    }
+
+    .coming-soon {
+        display: inline-block;
+        background: var(--primary-light);
+        color: var(--primary);
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: var(--space-1) var(--space-3);
+        border-radius: var(--radius-full);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-active {
+        display: inline-block;
+        background: rgba(34, 197, 94, 0.1);
+        color: #15803D;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: var(--space-1) var(--space-3);
+        border-radius: var(--radius-full);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .badge-warning {
+        display: inline-block;
+        background: rgba(245, 158, 11, 0.1);
+        color: #D97706;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: var(--space-1) var(--space-3);
+        border-radius: var(--radius-full);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: var(--space-4);
+    }
+    
+    .modal-content {
+        background: var(--white);
+        border-radius: var(--radius-lg);
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-4) var(--space-6);
+        border-bottom: 1px solid var(--gray-200);
+    }
+    
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+    }
+    
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--gray-500);
+        padding: 0;
+        line-height: 1;
+    }
+    
+    .modal-close:hover {
+        color: var(--gray-700);
+    }
+    
+    .modal-body {
+        padding: var(--space-6);
+    }
+    
+    .upload-section p {
+        color: var(--gray-600);
+        margin-bottom: var(--space-4);
+    }
+    
+    .csv-format {
+        background: var(--gray-50);
+        padding: var(--space-3);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-4);
+        overflow-x: auto;
+    }
+    
+    .csv-format code {
+        font-size: 0.75rem;
+        color: var(--gray-700);
+        white-space: nowrap;
+    }
+    
+    .hint {
+        font-size: 0.8125rem;
+        color: var(--gray-500);
+        margin-bottom: var(--space-4);
+    }
+    
+    .btn-upload {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        width: 100%;
+    }
+    
+    .training-progress {
+        text-align: center;
+        padding: var(--space-8) var(--space-4);
+    }
+    
+    .progress-text {
+        margin-top: var(--space-4);
+        color: var(--gray-600);
+    }
+    
+    .training-success {
+        text-align: center;
+        padding: var(--space-4);
+    }
+    
+    .training-success svg {
+        margin-bottom: var(--space-4);
+    }
+    
+    .training-success h3 {
+        color: #15803D;
+        margin-bottom: var(--space-2);
+    }
+    
+    .training-success p {
+        color: var(--gray-600);
+        margin-bottom: var(--space-3);
+    }
+    
+    .training-success .accuracy {
+        font-size: 1.1rem;
+        margin-bottom: var(--space-4);
+    }
+    
+    .training-success .accuracy strong {
+        color: var(--primary);
+    }
+
+    @@media (max-width: 640px) {
+        .admin-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
