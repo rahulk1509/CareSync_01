@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Doctor> Doctors => Set<Doctor>();
     public DbSet<PatientAssignment> PatientAssignments => Set<PatientAssignment>();
+    public DbSet<DepartmentPrediction> DepartmentPredictions => Set<DepartmentPrediction>();
     
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -72,6 +73,22 @@ public class AppDbContext : DbContext
             entity.HasOne(a => a.Assessment)
                   .WithMany()
                   .HasForeignKey(a => a.AssessmentId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+        
+        // DepartmentPrediction configuration
+        modelBuilder.Entity<DepartmentPrediction>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.ClinicalExplanation).HasMaxLength(2000);
+            entity.Property(p => p.KeyFindings).HasMaxLength(1000);
+            entity.HasOne(p => p.Patient)
+                  .WithMany()
+                  .HasForeignKey(p => p.PatientId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(p => p.Assessment)
+                  .WithMany()
+                  .HasForeignKey(p => p.AssessmentId)
                   .OnDelete(DeleteBehavior.SetNull);
         });
         

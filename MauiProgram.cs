@@ -42,6 +42,7 @@ public static class MauiProgram
         builder.Services.AddScoped<IDoctorService, DoctorService>();
         builder.Services.AddScoped<IAssignmentService, AssignmentService>();
         builder.Services.AddScoped<IPdfReportService, PdfReportService>();
+        builder.Services.AddScoped<IDepartmentAnalysisService, DepartmentAnalysisService>();
 
         // === AI ===
         builder.Services.AddSingleton<TriagePredictionEngine>();

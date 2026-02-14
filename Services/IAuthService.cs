@@ -23,6 +23,31 @@ public interface IAuthService
     bool IsAdmin { get; }
     
     /// <summary>
+    /// Check if current user is patient
+    /// </summary>
+    bool IsPatient { get; }
+    
+    /// <summary>
+    /// Check if current user is doctor
+    /// </summary>
+    bool IsDoctor { get; }
+    
+    /// <summary>
+    /// Get current user's role
+    /// </summary>
+    UserRole? CurrentRole { get; }
+    
+    /// <summary>
+    /// Check if current user has a specific role
+    /// </summary>
+    bool HasRole(UserRole role);
+    
+    /// <summary>
+    /// Check if current user has any of the specified roles
+    /// </summary>
+    bool HasAnyRole(params UserRole[] roles);
+    
+    /// <summary>
     /// Authenticate user with email and password
     /// </summary>
     Task<(bool Success, string Message)> LoginAsync(string email, string password);

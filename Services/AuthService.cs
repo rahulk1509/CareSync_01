@@ -19,8 +19,16 @@ public class AuthService : IAuthService
     public User? CurrentUser => _currentUser;
     public bool IsAuthenticated => _currentUser != null;
     public bool IsAdmin => _currentUser?.Role == UserRole.Admin;
+    public bool IsPatient => _currentUser?.Role == UserRole.Patient;
+    public bool IsDoctor => _currentUser?.Role == UserRole.Doctor;
+    public UserRole? CurrentRole => _currentUser?.Role;
     
     public event Action? OnAuthStateChanged;
+    
+    public bool HasRole(UserRole role) => _currentUser?.Role == role;
+    
+    public bool HasAnyRole(params UserRole[] roles) => 
+        _currentUser != null && roles.Contains(_currentUser.Role);
     
     public AuthService(IServiceProvider serviceProvider)
     {

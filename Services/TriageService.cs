@@ -13,11 +13,16 @@ public class TriageService : ITriageService
 {
     private readonly AppDbContext _context;
     private readonly TriagePredictionEngine _predictionEngine;
+    private readonly IDepartmentAnalysisService _departmentAnalysisService;
     
-    public TriageService(AppDbContext context, TriagePredictionEngine predictionEngine)
+    public TriageService(
+        AppDbContext context, 
+        TriagePredictionEngine predictionEngine,
+        IDepartmentAnalysisService departmentAnalysisService)
     {
         _context = context;
         _predictionEngine = predictionEngine;
+        _departmentAnalysisService = departmentAnalysisService;
     }
     
     public async Task<RiskPrediction> AssessPatientAsync(Patient patient, TriageAssessment assessment)
@@ -32,10 +37,26 @@ public class TriageService : ITriageService
         
         // Update patient's current triage level
         patient.CurrentTriageLevel = prediction.PredictedLevel;
+        patient.RiskPercentage = prediction.RiskScore;
         patient.LastUpdated = DateTime.Now;
         
-        // Save to database
+        // Save assessment first to get ID
         _context.Assessments.Add(assessment);
+        await _context.SaveChangesAsync();
+        
+        // Run department analysis
+        try
+        {
+            var deptResult = await _departmentAnalysisService.AnalyzeAsync(assessment, patient);
+            patient.RecommendedDepartment = deptResult.RecommendedDepartment.ToString();
+        }
+        catch
+        {
+            // Fallback to default department based on triage level
+            patient.RecommendedDepartment = GetDefaultDepartment(prediction.PredictedLevel);
+        }
+        
+        // Save patient updates
         _context.Patients.Update(patient);
         await _context.SaveChangesAsync();
         
@@ -67,4 +88,16 @@ public class TriageService : ITriageService
             .OrderBy(g => g.Key)
             .ToDictionary(g => g.Key, g => g.ToList());
     }
+    
+    /// <summary>
+    /// Gets default department based on triage level (fallback)
+    /// </summary>
+    private string GetDefaultDepartment(TriageLevel level) => level switch
+    {
+        TriageLevel.Emergency => Department.Emergency.ToString(),
+        TriageLevel.Urgent => Department.Emergency.ToString(),
+        TriageLevel.Standard => Department.GeneralMedicine.ToString(),
+        TriageLevel.NonUrgent => Department.GeneralMedicine.ToString(),
+        _ => Department.GeneralMedicine.ToString()
+    };
 }

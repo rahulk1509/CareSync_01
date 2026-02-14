@@ -1,8 +1,11 @@
 @page "/admin-dashboard"
+@using HospitalTriageAI.Models
+@using HospitalTriageAI.Models.Enums
 @inject HospitalTriageAI.Services.IPatientService PatientService
 @inject HospitalTriageAI.Services.IDoctorService DoctorService
 @inject HospitalTriageAI.Services.IAssignmentService AssignmentService
 @inject HospitalTriageAI.Services.IAuthService AuthService
+@inject HospitalTriageAI.Services.IDepartmentAnalysisService DepartmentAnalysisService
 @inject NavigationManager Navigation
 @implements IDisposable
 
@@ -247,7 +250,140 @@ else
             }
         </div>
     </section>
+
+    <!-- Department Analysis Section -->
+    <section class="department-section">
+        <div class="section-header">
+            <h2>Department Analysis</h2>
+            <span class="badge">AI-Powered Routing</span>
+        </div>
+        
+        <!-- Department Distribution -->
+        <div class="dept-distribution">
+            <h4>Patient Distribution by Department</h4>
+            <div class="dept-bars">
+                @foreach (var dept in _departmentDistribution.OrderByDescending(d => d.Value))
+                {
+                    var percentage = _departmentDistribution.Values.Sum() > 0 
+                        ? (dept.Value * 100.0 / _departmentDistribution.Values.Sum()) 
+                        : 0;
+                    <div class="dept-bar-item">
+                        <div class="dept-label">
+                            <span class="dept-name">@dept.Key</span>
+                            <span class="dept-count">@dept.Value patients</span>
+                        </div>
+                        <div class="dept-bar-container">
+                            <div class="dept-bar @GetDeptClass(dept.Key)" style="width: @(percentage)%"></div>
+                        </div>
+                        <span class="dept-percentage">@percentage.ToString("F0")%</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Recent Department Predictions -->
+        @if (_recentPredictions.Any())
+        {
+            <div class="recent-predictions">
+                <h4>Recent AI Department Recommendations</h4>
+                <div class="predictions-grid">
+                    @foreach (var prediction in _recentPredictions.Take(6))
+                    {
+                        <div class="prediction-card @(prediction.IsEmergencyPriority ? "emergency-priority" : "")">
+                            <div class="prediction-header">
+                                <span class="patient-name-pred">@prediction.Patient?.FullName</span>
+                                <span class="confidence-badge">@prediction.ConfidenceScore% confidence</span>
+                            </div>
+                            <div class="prediction-dept">
+                                <span class="dept-tag @GetDeptClass(prediction.RecommendedDepartment)">
+                                    @prediction.RecommendedDepartment
+                                </span>
+                                @if (prediction.IsEmergencyPriority)
+                                {
+                                    <span class="priority-indicator">PRIORITY</span>
+                                }
+                            </div>
+                            <p class="prediction-explanation">@TruncateText(prediction.ClinicalExplanation, 120)</p>
+                            <div class="prediction-footer">
+                                <span class="prediction-time">@prediction.PredictedAt.ToString("MMM dd, HH:mm")</span>
+                                <button class="btn btn-sm btn-outline" @onclick="() => ViewPredictionDetails(prediction)">
+                                    Details
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </section>
 </div>
+
+<!-- Prediction Details Modal -->
+@if (_showPredictionModal && _selectedPrediction != null)
+{
+    <div class="modal-overlay" @onclick="ClosePredictionModal">
+        <div class="modal-content prediction-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Department Analysis Details</h3>
+                <button class="modal-close" @onclick="ClosePredictionModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="prediction-detail-header">
+                    <div>
+                        <strong>@_selectedPrediction.Patient?.FullName</strong>
+                        <span class="dept-tag @GetDeptClass(_selectedPrediction.RecommendedDepartment)">
+                            @_selectedPrediction.RecommendedDepartment
+                        </span>
+                    </div>
+                    <div class="confidence-display">
+                        <span class="confidence-value">@_selectedPrediction.ConfidenceScore%</span>
+                        <span class="confidence-label">Confidence</span>
+                    </div>
+                </div>
+                
+                @if (_selectedPrediction.IsEmergencyPriority)
+                {
+                    <div class="emergency-alert">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span>Emergency Priority - Immediate attention required</span>
+                    </div>
+                }
+                
+                <div class="explanation-section">
+                    <h4>Clinical Explanation</h4>
+                    <p>@_selectedPrediction.ClinicalExplanation</p>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(_selectedPrediction.KeyFindings))
+                {
+                    <div class="findings-section">
+                        <h4>Key Findings</h4>
+                        <ul>
+                            @foreach (var finding in _selectedPrediction.KeyFindings.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                            {
+                                <li>@finding.Trim()</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                
+                <div class="prediction-meta">
+                    <span>Analyzed: @_selectedPrediction.PredictedAt.ToString("MMMM dd, yyyy HH:mm")</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" @onclick="ClosePredictionModal">Close</button>
+                <button class="btn btn-primary" @onclick="() => NavigateToPatient(_selectedPrediction.PatientId)">
+                    View Patient
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- Assign Doctor Modal -->
 @if (_showAssignModal && _selectedPatient != null)
@@ -295,6 +431,12 @@ else
     private List<Doctor> _doctors = new();
     private List<Doctor> _availableDoctors = new();
     
+    // Department Analysis
+    private Dictionary<Department, int> _departmentDistribution = new();
+    private List<DepartmentPrediction> _recentPredictions = new();
+    private bool _showPredictionModal = false;
+    private DepartmentPrediction? _selectedPrediction;
+    
     private bool _showAssignModal = false;
     private Patient? _selectedPatient;
     private int _selectedDoctorId = 0;
@@ -326,6 +468,10 @@ else
             _highRiskPatients = await PatientService.GetHighRiskPatientsAsync();
             _doctors = await DoctorService.GetAllDoctorsAsync();
             _availableDoctors = await DoctorService.GetAvailableDoctorsAsync();
+            
+            // Load department analysis data
+            _departmentDistribution = await DepartmentAnalysisService.GetDepartmentDistributionAsync();
+            _recentPredictions = await DepartmentAnalysisService.GetPredictionsAsync(limit: 10);
         }
         catch { }
     }
@@ -402,6 +548,43 @@ else
     public void Dispose()
     {
         _refreshTimer?.Dispose();
+    }
+
+    // Department Analysis helpers
+    private void ViewPredictionDetails(DepartmentPrediction prediction)
+    {
+        _selectedPrediction = prediction;
+        _showPredictionModal = true;
+    }
+
+    private void ClosePredictionModal()
+    {
+        _showPredictionModal = false;
+        _selectedPrediction = null;
+    }
+
+    private void NavigateToPatient(int patientId)
+    {
+        ClosePredictionModal();
+        Navigation.NavigateTo($"/patient-report/{patientId}");
+    }
+
+    private string GetDeptClass(Department dept) => dept switch
+    {
+        Department.Emergency => "dept-emergency",
+        Department.Cardiology => "dept-cardiology",
+        Department.Pulmonology => "dept-pulmonology",
+        Department.Neurology => "dept-neurology",
+        Department.Orthopedics => "dept-orthopedics",
+        Department.GeneralMedicine => "dept-general",
+        _ => "dept-default"
+    };
+
+    private string TruncateText(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+            return text;
+        return text.Substring(0, maxLength) + "...";
     }
 }
 
@@ -815,5 +998,276 @@ else
         .stats-overview { grid-template-columns: 1fr 1fr; }
         .doctors-grid { grid-template-columns: 1fr; }
         .dashboard-header { flex-direction: column; gap: var(--space-4); }
+    }
+
+    /* Department Analysis Section */
+    .department-section {
+        background: var(--white);
+        border: 2px solid var(--primary-border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-5);
+    }
+
+    .dept-distribution {
+        margin-bottom: var(--space-6);
+    }
+
+    .dept-distribution h4,
+    .recent-predictions h4 {
+        font-size: 0.9375rem;
+        color: var(--gray-700);
+        margin-bottom: var(--space-4);
+    }
+
+    .dept-bars {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .dept-bar-item {
+        display: grid;
+        grid-template-columns: 140px 1fr 50px;
+        gap: var(--space-3);
+        align-items: center;
+    }
+
+    .dept-label {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .dept-name {
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+
+    .dept-count {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+
+    .dept-bar-container {
+        height: 24px;
+        background: var(--gray-100);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+    }
+
+    .dept-bar {
+        height: 100%;
+        border-radius: var(--radius-sm);
+        transition: width 0.5s ease;
+    }
+
+    .dept-percentage {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--gray-600);
+        text-align: right;
+    }
+
+    /* Department color classes */
+    .dept-emergency { background: #DC2626; color: white; }
+    .dept-cardiology { background: #EF4444; color: white; }
+    .dept-pulmonology { background: #3B82F6; color: white; }
+    .dept-neurology { background: #8B5CF6; color: white; }
+    .dept-orthopedics { background: #F59E0B; color: white; }
+    .dept-general { background: #10B981; color: white; }
+    .dept-default { background: var(--gray-400); color: white; }
+
+    .dept-tag {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: var(--radius-full);
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    /* Recent Predictions Grid */
+    .predictions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-4);
+    }
+
+    .prediction-card {
+        background: var(--gray-50);
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-md);
+        padding: var(--space-4);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    .prediction-card.emergency-priority {
+        border-color: #DC2626;
+        background: rgba(220, 38, 38, 0.03);
+    }
+
+    .prediction-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .patient-name-pred {
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .confidence-badge {
+        background: var(--primary-bg);
+        color: var(--primary-dark);
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+
+    .prediction-dept {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .priority-indicator {
+        background: #DC2626;
+        color: white;
+        padding: 1px 6px;
+        border-radius: var(--radius-sm);
+        font-size: 0.625rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        animation: blink 1.5s infinite;
+    }
+
+    .prediction-explanation {
+        font-size: 0.8125rem;
+        color: var(--gray-600);
+        line-height: 1.5;
+        margin: 0;
+        flex-grow: 1;
+    }
+
+    .prediction-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: var(--space-2);
+        padding-top: var(--space-2);
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .prediction-time {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+    }
+
+    /* Prediction Details Modal */
+    .prediction-modal {
+        max-width: 550px;
+    }
+
+    .prediction-detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--space-4);
+        padding-bottom: var(--space-4);
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .prediction-detail-header strong {
+        display: block;
+        margin-bottom: var(--space-2);
+        font-size: 1.125rem;
+    }
+
+    .confidence-display {
+        text-align: center;
+    }
+
+    .confidence-value {
+        display: block;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .confidence-label {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        text-transform: uppercase;
+    }
+
+    .emergency-alert {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        background: rgba(220, 38, 38, 0.1);
+        border: 1px solid #DC2626;
+        color: #DC2626;
+        padding: var(--space-3);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-4);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .explanation-section,
+    .findings-section {
+        margin-bottom: var(--space-4);
+    }
+
+    .explanation-section h4,
+    .findings-section h4 {
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--gray-500);
+        margin-bottom: var(--space-2);
+    }
+
+    .explanation-section p {
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        color: var(--gray-700);
+    }
+
+    .findings-section ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .findings-section li {
+        padding: var(--space-2) 0;
+        border-bottom: 1px solid var(--gray-100);
+        font-size: 0.875rem;
+        color: var(--gray-600);
+    }
+
+    .findings-section li:before {
+        content: "•";
+        color: var(--primary);
+        margin-right: var(--space-2);
+        font-weight: bold;
+    }
+
+    .prediction-meta {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        text-align: right;
+    }
+
+    @@media (max-width: 1024px) {
+        .predictions-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @@media (max-width: 640px) {
+        .predictions-grid { grid-template-columns: 1fr; }
+        .dept-bar-item { grid-template-columns: 100px 1fr 40px; }
     }
 </style>

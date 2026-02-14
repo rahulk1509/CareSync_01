@@ -55,6 +55,9 @@
 </div>
 
 @code {
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+    
     private LoginModel _model = new();
     private bool _submitting = false;
     private string? _error;
@@ -70,15 +73,28 @@
             
             if (result.Success)
             {
+                // Check for return URL first
+                if (!string.IsNullOrEmpty(ReturnUrl))
+                {
+                    var decodedUrl = Uri.UnescapeDataString(ReturnUrl);
+                    // Validate it's a relative URL for security
+                    if (decodedUrl.StartsWith("/"))
+                    {
+                        Navigation.NavigateTo(decodedUrl);
+                        return;
+                    }
+                }
+                
                 // Redirect based on role
-                if (AuthService.IsAdmin)
+                var redirectUrl = AuthService.CurrentRole switch
                 {
-                    Navigation.NavigateTo("/admin-dashboard");
-                }
-                else
-                {
-                    Navigation.NavigateTo("/intake");
-                }
+                    UserRole.Admin => "/admin-dashboard",
+                    UserRole.Doctor => "/doctor-dashboard",
+                    UserRole.Patient => "/patient-portal",
+                    _ => "/"
+                };
+                
+                Navigation.NavigateTo(redirectUrl);
             }
             else
             {

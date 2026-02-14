@@ -7,6 +7,7 @@ public enum Department
 {
     Emergency,
     Cardiology,
+    Pulmonology,
     Neurology,
     Orthopedics,
     Pediatrics,
