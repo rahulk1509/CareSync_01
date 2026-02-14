@@ -1,0 +1,129 @@
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+@if (_isAuthorized)
+{
+    @ChildContent
+}
+else if (_isChecking)
+{
+    <div class="role-guard-loading">
+        <div class="loading-spinner"></div>
+        <p>Verifying access...</p>
+    </div>
+}
+
+<style>
+    .role-guard-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px;
+        gap: 16px;
+        color: #64748b;
+    }
+    
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e2e8f0;
+        border-top-color: var(--primary, #4EBDB8);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
+@code {
+    /// <summary>
+    /// The roles that are allowed to access this content.
+    /// If empty, only authentication is required.
+    /// </summary>
+    [Parameter]
+    public UserRole[]? AllowedRoles { get; set; }
+    
+    /// <summary>
+    /// If true, requires the user to be authenticated (regardless of role).
+    /// </summary>
+    [Parameter]
+    public bool RequireAuthentication { get; set; } = true;
+    
+    /// <summary>
+    /// Custom redirect URL when unauthorized. Defaults to /unauthorized.
+    /// </summary>
+    [Parameter]
+    public string RedirectUrl { get; set; } = "/unauthorized";
+    
+    /// <summary>
+    /// If true, redirects to login instead of unauthorized page when not authenticated.
+    /// </summary>
+    [Parameter]
+    public bool RedirectToLoginWhenUnauthenticated { get; set; } = true;
+    
+    /// <summary>
+    /// The child content to render when authorized.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+    
+    private bool _isAuthorized = false;
+    private bool _isChecking = true;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CheckAuthorizationAsync();
+        }
+    }
+    
+    private async Task CheckAuthorizationAsync()
+    {
+        _isChecking = true;
+        StateHasChanged();
+        
+        // Try to restore session if not authenticated
+        if (!AuthService.IsAuthenticated)
+        {
+            await AuthService.TryRestoreSessionAsync();
+        }
+        
+        // Check authentication
+        if (RequireAuthentication && !AuthService.IsAuthenticated)
+        {
+            _isChecking = false;
+            _isAuthorized = false;
+            
+            if (RedirectToLoginWhenUnauthenticated)
+            {
+                var returnUrl = Uri.EscapeDataString(Navigation.Uri);
+                Navigation.NavigateTo($"/login?returnUrl={returnUrl}");
+            }
+            else
+            {
+                Navigation.NavigateTo(RedirectUrl);
+            }
+            return;
+        }
+        
+        // Check roles if specified
+        if (AllowedRoles != null && AllowedRoles.Length > 0)
+        {
+            if (!AuthService.HasAnyRole(AllowedRoles))
+            {
+                _isChecking = false;
+                _isAuthorized = false;
+                Navigation.NavigateTo(RedirectUrl);
+                return;
+            }
+        }
+        
+        _isChecking = false;
+        _isAuthorized = true;
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,172 @@
+@page "/unauthorized"
+@inject NavigationManager Navigation
+@inject IAuthService AuthService
+
+<div class="unauthorized-page">
+    <div class="unauthorized-container">
+        <div class="unauthorized-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+        </div>
+        
+        <h1 class="unauthorized-title">Access Denied</h1>
+        
+        <p class="unauthorized-message">
+            You don't have permission to access this page.
+        </p>
+        
+        @if (!AuthService.IsAuthenticated)
+        {
+            <p class="unauthorized-hint">
+                Please log in to continue.
+            </p>
+            <button class="unauthorized-btn primary" @onclick="GoToLogin">
+                Go to Login
+            </button>
+        }
+        else
+        {
+            <p class="unauthorized-hint">
+                Your current role (@GetRoleName()) doesn't have access to this resource.
+            </p>
+            <div class="unauthorized-actions">
+                <button class="unauthorized-btn primary" @onclick="GoToHome">
+                    Go to My Dashboard
+                </button>
+                <button class="unauthorized-btn secondary" @onclick="GoBack">
+                    Go Back
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .unauthorized-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+        padding: 20px;
+    }
+    
+    .unauthorized-container {
+        background: white;
+        border-radius: 16px;
+        padding: 48px;
+        text-align: center;
+        max-width: 450px;
+        width: 100%;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+    
+    .unauthorized-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 24px;
+        color: var(--accent, #E5754B);
+    }
+    
+    .unauthorized-icon svg {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .unauthorized-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin: 0 0 16px;
+    }
+    
+    .unauthorized-message {
+        font-size: 16px;
+        color: #64748b;
+        margin: 0 0 8px;
+        line-height: 1.5;
+    }
+    
+    .unauthorized-hint {
+        font-size: 14px;
+        color: #94a3b8;
+        margin: 0 0 32px;
+    }
+    
+    .unauthorized-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .unauthorized-btn {
+        padding: 14px 28px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+    }
+    
+    .unauthorized-btn.primary {
+        background: linear-gradient(135deg, var(--primary, #4EBDB8) 0%, #3da8a3 100%);
+        color: white;
+    }
+    
+    .unauthorized-btn.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(78, 189, 184, 0.4);
+    }
+    
+    .unauthorized-btn.secondary {
+        background: #f1f5f9;
+        color: #475569;
+    }
+    
+    .unauthorized-btn.secondary:hover {
+        background: #e2e8f0;
+    }
+</style>
+
+@code {
+    private void GoToLogin()
+    {
+        Navigation.NavigateTo("/login");
+    }
+    
+    private void GoToHome()
+    {
+        if (AuthService.IsAdmin)
+        {
+            Navigation.NavigateTo("/admin-dashboard");
+        }
+        else if (AuthService.IsDoctor)
+        {
+            Navigation.NavigateTo("/doctor-dashboard");
+        }
+        else
+        {
+            Navigation.NavigateTo("/patient-portal");
+        }
+    }
+    
+    private void GoBack()
+    {
+        // Navigate to appropriate home based on role
+        GoToHome();
+    }
+    
+    private string GetRoleName()
+    {
+        return AuthService.CurrentRole switch
+        {
+            UserRole.Admin => "Administrator",
+            UserRole.Doctor => "Doctor",
+            UserRole.Patient => "Patient",
+            _ => "Unknown"
+        };
+    }
+}

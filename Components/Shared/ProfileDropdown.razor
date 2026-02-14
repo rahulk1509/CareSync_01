@@ -1,0 +1,395 @@
+@inject HospitalTriageAI.Services.IAuthService AuthService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="profile-dropdown-container" @onclick:stopPropagation="true">
+    @if (AuthService.IsAuthenticated)
+    {
+        <button class="profile-avatar-btn" @onclick="ToggleDropdown" @onclick:stopPropagation="true">
+            <div class="avatar-circle">
+                @if (!string.IsNullOrEmpty(AuthService.CurrentUser?.FullName))
+                {
+                    <span class="avatar-initials">@GetInitials()</span>
+                }
+                else
+                {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                }
+            </div>
+            <svg class="chevron-icon @(_isOpen ? "rotated" : "")" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="6,9 12,15 18,9"/>
+            </svg>
+        </button>
+
+        @if (_isOpen)
+        {
+            <div class="dropdown-backdrop" @onclick="CloseDropdown"></div>
+            <div class="dropdown-panel @(_isOpen ? "open" : "")">
+                <!-- User Info Section -->
+                <div class="dropdown-user-section">
+                    <div class="dropdown-avatar">
+                        <span class="avatar-initials-large">@GetInitials()</span>
+                    </div>
+                    <div class="dropdown-user-info">
+                        <span class="dropdown-user-name">@AuthService.CurrentUser?.FullName</span>
+                        <span class="dropdown-user-role @GetRoleClass()">@GetRoleLabel()</span>
+                    </div>
+                </div>
+
+                <div class="dropdown-divider"></div>
+
+                <!-- Menu Links -->
+                <div class="dropdown-menu">
+                    <a href="/my-profile" class="dropdown-item" @onclick="CloseDropdown">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        <span>Profile</span>
+                    </a>
+                    <a href="/settings" class="dropdown-item" @onclick="CloseDropdown">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        <span>Settings</span>
+                    </a>
+                </div>
+
+                <div class="dropdown-divider"></div>
+
+                <!-- Sign Out Button -->
+                <div class="dropdown-footer">
+                    <button class="dropdown-signout-btn" @onclick="HandleSignOut">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16,17 21,12 16,7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <a href="/login" class="login-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10,17 15,12 10,7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            <span>Sign In</span>
+        </a>
+    }
+</div>
+
+@code {
+    private bool _isOpen = false;
+
+    protected override void OnInitialized()
+    {
+        AuthService.OnAuthStateChanged += HandleAuthStateChanged;
+    }
+
+    private void ToggleDropdown()
+    {
+        _isOpen = !_isOpen;
+    }
+
+    private void CloseDropdown()
+    {
+        _isOpen = false;
+    }
+
+    private async Task HandleSignOut()
+    {
+        _isOpen = false;
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login");
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        _isOpen = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetInitials()
+    {
+        var name = AuthService.CurrentUser?.FullName ?? "";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return $"{parts[0][0]}{parts[1][0]}".ToUpper();
+        if (parts.Length == 1 && parts[0].Length > 0)
+            return parts[0][0].ToString().ToUpper();
+        return "?";
+    }
+
+    private string GetRoleLabel()
+    {
+        return AuthService.CurrentRole switch
+        {
+            UserRole.Admin => "Administrator",
+            UserRole.Doctor => "Doctor",
+            UserRole.Patient => "Patient",
+            _ => "User"
+        };
+    }
+
+    private string GetRoleClass()
+    {
+        return AuthService.CurrentRole switch
+        {
+            UserRole.Admin => "role-admin",
+            UserRole.Doctor => "role-doctor",
+            UserRole.Patient => "role-patient",
+            _ => ""
+        };
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthStateChanged -= HandleAuthStateChanged;
+    }
+}
+
+<style>
+    .profile-dropdown-container {
+        position: relative;
+    }
+
+    /* Avatar Button */
+    .profile-avatar-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px 6px 6px;
+        background: transparent;
+        border: 1px solid var(--gray-200, #e2e8f0);
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .profile-avatar-btn:hover {
+        background: var(--gray-50, #f8fafc);
+        border-color: var(--gray-300, #cbd5e1);
+    }
+
+    .avatar-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary, #4EBDB8) 0%, #3da8a3 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .avatar-initials {
+        text-transform: uppercase;
+    }
+
+    .chevron-icon {
+        color: var(--gray-500, #64748b);
+        transition: transform 0.2s ease;
+    }
+
+    .chevron-icon.rotated {
+        transform: rotate(180deg);
+    }
+
+    /* Login Button */
+    .login-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: var(--primary, #4EBDB8);
+        color: white;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 14px;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .login-btn:hover {
+        background: #3da8a3;
+        transform: translateY(-1px);
+    }
+
+    /* Backdrop */
+    .dropdown-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+    }
+
+    /* Dropdown Panel */
+    .dropdown-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        width: 280px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+        z-index: 1000;
+        overflow: hidden;
+        animation: dropdownSlideIn 0.2s ease-out;
+        transform-origin: top right;
+    }
+
+    @@keyframes dropdownSlideIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95) translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    /* User Section */
+    .dropdown-user-section {
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .dropdown-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary, #4EBDB8) 0%, #3da8a3 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .avatar-initials-large {
+        font-weight: 700;
+        font-size: 18px;
+        text-transform: uppercase;
+    }
+
+    .dropdown-user-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    .dropdown-user-name {
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--gray-900, #0f172a);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dropdown-user-role {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 4px;
+        width: fit-content;
+    }
+
+    .dropdown-user-role.role-admin {
+        background: rgba(229, 117, 75, 0.1);
+        color: #E5754B;
+    }
+
+    .dropdown-user-role.role-doctor {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+    }
+
+    .dropdown-user-role.role-patient {
+        background: rgba(78, 189, 184, 0.1);
+        color: #4EBDB8;
+    }
+
+    /* Divider */
+    .dropdown-divider {
+        height: 1px;
+        background: var(--gray-100, #f1f5f9);
+        margin: 0;
+    }
+
+    /* Menu Items */
+    .dropdown-menu {
+        padding: 8px;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        color: var(--gray-700, #334155);
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.15s ease;
+    }
+
+    .dropdown-item:hover {
+        background: var(--gray-50, #f8fafc);
+        color: var(--gray-900, #0f172a);
+    }
+
+    .dropdown-item svg {
+        color: var(--gray-400, #94a3b8);
+        flex-shrink: 0;
+    }
+
+    .dropdown-item:hover svg {
+        color: var(--gray-600, #475569);
+    }
+
+    /* Sign Out Footer */
+    .dropdown-footer {
+        padding: 8px;
+    }
+
+    .dropdown-signout-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 10px 12px;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        color: #dc2626;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .dropdown-signout-btn:hover {
+        background: rgba(220, 38, 38, 0.08);
+    }
+
+    .dropdown-signout-btn svg {
+        flex-shrink: 0;
+    }
+</style>

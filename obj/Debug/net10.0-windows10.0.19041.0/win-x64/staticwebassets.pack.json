@@ -9,19 +9,23 @@
       "PackagePath": "staticwebassets\\_framework\\blazor.webview.js"
     },
     {
-      "Id": "C:\\Users\\Lil_r\\Videos\\HospitalTriageAI\\obj\\Debug\\net10.0-windows10.0.19041.0\\win-x64\\scopedcss\\bundle\\HospitalTriageAI.styles.css",
+      "Id": "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\obj\\Debug\\net10.0-windows10.0.19041.0\\win-x64\\scopedcss\\bundle\\HospitalTriageAI.styles.css",
       "PackagePath": "staticwebassets\\HospitalTriageAI.styles.css"
     },
     {
-      "Id": "C:\\Users\\Lil_r\\Videos\\HospitalTriageAI\\wwwroot\\app.css",
+      "Id": "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\wwwroot\\app.css",
       "PackagePath": "staticwebassets\\app.css"
     },
     {
-      "Id": "C:\\Users\\Lil_r\\Videos\\HospitalTriageAI\\wwwroot\\css\\app.css",
+      "Id": "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\wwwroot\\css\\app.css",
       "PackagePath": "staticwebassets\\css\\app.css"
     },
     {
-      "Id": "C:\\Users\\Lil_r\\Videos\\HospitalTriageAI\\wwwroot\\index.html",
+      "Id": "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\wwwroot\\css\\auth.css",
+      "PackagePath": "staticwebassets\\css\\auth.css"
+    },
+    {
+      "Id": "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\wwwroot\\index.html",
       "PackagePath": "staticwebassets\\index.html"
     },
     {
