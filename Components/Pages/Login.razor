@@ -39,7 +39,7 @@
 
         <div class="form-actions">
             <a href="/signup" class="btn btn-outline">Create Account</a>
-            <button type="submit" class="btn btn-accent" disabled="@_submitting">
+            <button type="submit" class="btn" style="background: red; color: white;" disabled="@_submitting">
                 @if (_submitting)
                 {
                     <span class="spinner"></span>
@@ -55,9 +55,6 @@
 </div>
 
 @code {
-    [SupplyParameterFromQuery]
-    public string? ReturnUrl { get; set; }
-    
     private LoginModel _model = new();
     private bool _submitting = false;
     private string? _error;
@@ -73,28 +70,15 @@
             
             if (result.Success)
             {
-                // Check for return URL first
-                if (!string.IsNullOrEmpty(ReturnUrl))
-                {
-                    var decodedUrl = Uri.UnescapeDataString(ReturnUrl);
-                    // Validate it's a relative URL for security
-                    if (decodedUrl.StartsWith("/"))
-                    {
-                        Navigation.NavigateTo(decodedUrl);
-                        return;
-                    }
-                }
-                
                 // Redirect based on role
-                var redirectUrl = AuthService.CurrentRole switch
+                if (AuthService.IsAdmin)
                 {
-                    UserRole.Admin => "/admin-dashboard",
-                    UserRole.Doctor => "/doctor-dashboard",
-                    UserRole.Patient => "/patient-portal",
-                    _ => "/"
-                };
-                
-                Navigation.NavigateTo(redirectUrl);
+                    Navigation.NavigateTo("/admin-dashboard");
+                }
+                else
+                {
+                    Navigation.NavigateTo("/intake");
+                }
             }
             else
             {
@@ -124,13 +108,12 @@
 
 <style>
     .login-page {
-        max-width: 450px;
+        max-width: 700px;
         margin: 0 auto;
     }
 
     .page-header {
         margin-bottom: var(--space-8);
-        text-align: center;
     }
 
     .page-header h1 {
@@ -146,6 +129,13 @@
         margin-bottom: var(--space-6);
     }
 
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-4);
+        margin-bottom: var(--space-4);
+    }
+
     .demo-credentials {
         margin-top: var(--space-4);
         padding: var(--space-3);
@@ -157,8 +147,7 @@
 
     .form-actions {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
+        justify-content: flex-end;
         gap: var(--space-3);
         padding-top: var(--space-4);
     }

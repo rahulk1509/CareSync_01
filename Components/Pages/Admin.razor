@@ -3,64 +3,42 @@
 @inject HospitalTriageAI.Services.IAuthService AuthService
 @inject HospitalTriageAI.Services.IModelTrainingService ModelTrainingService
 
-@if (_loading)
-{
-    <div class="auth-page">
-        <div class="auth-loading">
+<div class="admin-page">
+    @if (_loading)
+    {
+        <div class="loading-state">
             <div class="spinner-lg"></div>
             <p>Loading...</p>
         </div>
-    </div>
-}
-else if (!AuthService.IsAdmin)
-{
-    <!-- Admin Login Form -->
-    <div class="auth-page">
-        <div class="auth-container">
-            <div class="auth-header">
-                <div class="auth-brand-icon">
-                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
-                        <rect width="24" height="24" rx="6" fill="#4EBDB8"/>
-                        <path d="M12 6v12M6 12h12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                    </svg>
-                </div>
+    }
+    else if (!AuthService.IsAdmin)
+    {
+        <!-- Admin Login Form -->
+        <div class="login-container">
+            <div class="portal-header">
                 <h1>Admin Portal</h1>
-                <p class="auth-subtitle">Sign in to access administrative tools and management</p>
+                <p class="subtitle">Sign in to access hospital administration</p>
             </div>
 
-            <div class="auth-card">
+            <div class="login-card">
                 <div class="form-group">
                     <label class="form-label">Email Address</label>
-                    <input type="email" 
-                           @bind="_email" 
-                           class="auth-input" 
-                           placeholder="Enter your email" />
+                    <input type="email" @bind="_email" class="form-input" placeholder="Enter your email" />
                 </div>
-                
                 <div class="form-group">
                     <label class="form-label">Password</label>
-                    <input type="password" 
-                           @bind="_password" 
-                           class="auth-input" 
-                           placeholder="Enter your password" />
+                    <input type="password" @bind="_password" class="form-input" placeholder="Enter your password" />
                 </div>
 
                 @if (!string.IsNullOrEmpty(_error))
                 {
-                    <div class="auth-alert">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
-                        </svg>
-                        <span>@_error</span>
-                    </div>
+                    <div class="alert alert-danger">@_error</div>
                 }
 
-                <button class="auth-btn" @onclick="HandleLogin" disabled="@_submitting">
+                <button class="btn btn-primary btn-full" @onclick="HandleLogin" disabled="@_submitting">
                     @if (_submitting)
                     {
-                        <span class="auth-spinner"></span>
+                        <span class="spinner"></span>
                         <span>Signing in...</span>
                     }
                     else
@@ -68,23 +46,21 @@ else if (!AuthService.IsAdmin)
                         <span>Sign In</span>
                     }
                 </button>
-            </div>
 
-            <div class="auth-demo">
-                <p><strong>Demo:</strong> admin@triageai.com / admin123</p>
+                <div class="login-footer">
+                    <p>Don't have an account? <a href="/signup">Create Account</a></p>
+                </div>
             </div>
         </div>
-    </div>
-}
-else
-{
-    <!-- Admin Portal Content -->
-    <div class="portal-page">
-        <div class="portal-header">
-            <div class="portal-header-row">
+    }
+    else
+    {
+        <!-- Admin Portal Content -->
+        <div class="page-header">
+            <div class="header-row">
                 <div>
                     <h1>Admin Portal</h1>
-                    <p class="portal-subtitle">Welcome back, @AuthService.CurrentUser?.FullName</p>
+                    <p>Welcome, @AuthService.CurrentUser?.FullName</p>
                 </div>
                 <button class="btn btn-outline" @onclick="HandleLogout">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -97,71 +73,71 @@ else
             </div>
         </div>
 
-        <div class="portal-grid">
-            <div class="portal-card" @onclick="@(() => Navigation.NavigateTo("/admin-dashboard"))">
-                <div class="portal-card-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div class="admin-grid">
+            <div class="admin-card" @onclick="@(() => Navigation.NavigateTo("/admin-dashboard"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7" rx="1"/>
                         <rect x="14" y="3" width="7" height="7" rx="1"/>
                         <rect x="3" y="14" width="7" height="7" rx="1"/>
                         <rect x="14" y="14" width="7" height="7" rx="1"/>
                     </svg>
+                    Admin Dashboard
                 </div>
-                <h3>Admin Dashboard</h3>
-                <p>Full dashboard with patient queue, stats, and doctor assignments</p>
-                <span class="portal-badge portal-badge-active">Active</span>
+                <p class="card-desc">Full dashboard with patient queue, stats, and doctor assignments.</p>
+                <span class="badge-active">Active</span>
             </div>
 
-            <div class="portal-card" @onclick="@(() => Navigation.NavigateTo("/doctors"))">
-                <div class="portal-card-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="admin-card" @onclick="@(() => Navigation.NavigateTo("/doctors"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                         <circle cx="9" cy="7" r="4"/>
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
+                    Doctor Management
                 </div>
-                <h3>Doctor Management</h3>
-                <p>View and manage doctor schedules and availability status</p>
-                <span class="portal-badge portal-badge-active">Active</span>
+                <p class="card-desc">View and manage doctor schedules and availability status.</p>
+                <span class="badge-active">Active</span>
             </div>
 
-            <div class="portal-card" @onclick="@(() => Navigation.NavigateTo("/reports"))">
-                <div class="portal-card-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="admin-card" @onclick="@(() => Navigation.NavigateTo("/reports"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                         <polyline points="14,2 14,8 20,8"/>
                         <line x1="16" y1="13" x2="8" y2="13"/>
                         <line x1="16" y1="17" x2="8" y2="17"/>
                     </svg>
+                    AI PDF Reports
                 </div>
-                <h3>AI PDF Reports</h3>
-                <p>Generate and view AI-powered patient assessment reports</p>
-                <span class="portal-badge portal-badge-active">Active</span>
+                <p class="card-desc">Generate and view AI-powered patient assessment reports.</p>
+                <span class="badge-active">Active</span>
             </div>
 
-            <div class="portal-card" @onclick="@(() => Navigation.NavigateTo("/ai-model"))">
-                <div class="portal-card-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="admin-card" @onclick="@(() => Navigation.NavigateTo("/ai-model"))">
+                <div class="card-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 2L2 7l10 5 10-5-10-5z"/>
                         <path d="M2 17l10 5 10-5"/>
                         <path d="M2 12l10 5 10-5"/>
                     </svg>
+                    AI Model Management
                 </div>
-                <h3>AI Model Management</h3>
-                <p>Train, manage and monitor the AI triage prediction model</p>
+                <p class="card-desc">Train, manage and monitor the AI triage prediction model.</p>
                 @if (ModelTrainingService.HasTrainedModel)
                 {
-                    <span class="portal-badge portal-badge-active">Model Ready</span>
+                    <span class="badge-active">Model Ready</span>
                 }
                 else
                 {
-                    <span class="portal-badge portal-badge-warning">No Model</span>
+                    <span class="badge-warning">No Model</span>
                 }
             </div>
         </div>
-    </div>
-}
+    }
+</div>
 
 @code {
     private string _email = "";
@@ -209,10 +185,163 @@ else
 }
 
 <style>
-    /* All shared styles are in wwwroot/css/auth.css */
-    /* Only page-specific overrides below */
-    
-    .portal-card .portal-badge {
-        margin-top: var(--space-3);
+    .admin-page {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .loading-state {
+        text-align: center;
+        padding: var(--space-12);
+    }
+
+    .login-container {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .login-card {
+        background: var(--white);
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+    }
+
+    .login-footer {
+        text-align: center;
+        margin-top: var(--space-4);
+        padding-top: var(--space-4);
+        border-top: 1px solid var(--gray-200);
+    }
+
+    .login-footer p {
+        margin: 0;
+        color: var(--gray-500);
+        font-size: 0.875rem;
+    }
+
+    .login-footer a {
+        color: var(--primary);
+        font-weight: 500;
+    }
+
+    .btn-full {
+        width: 100%;
+        margin-top: var(--space-4);
+    }
+
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .portal-header {
+        text-align: center;
+        margin-bottom: var(--space-8);
+    }
+
+    .header-row .portal-header,
+    .header-row > div {
+        text-align: left;
+    }
+
+    .portal-header h1 {
+        font-size: 2rem;
+        color: var(--gray-900);
+        margin-bottom: var(--space-2);
+    }
+
+    .portal-header .subtitle {
+        color: var(--gray-500);
+        font-size: 1.125rem;
+    }
+
+    .page-header {
+        margin-bottom: var(--space-8);
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+        color: var(--gray-900);
+        margin-bottom: var(--space-2);
+    }
+
+    .page-header p {
+        color: var(--gray-500);
+        font-size: 1.125rem;
+        margin: 0;
+    }
+
+    .admin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-6);
+    }
+
+    .admin-card {
+        background: var(--white);
+        border: 2px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .admin-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .admin-card .card-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: 1.125rem;
+        color: var(--gray-900);
+        margin-bottom: var(--space-2);
+    }
+
+    .card-desc {
+        color: var(--gray-500);
+        font-size: 0.875rem;
+        margin-bottom: var(--space-3);
+        line-height: 1.5;
+    }
+
+    .badge-active {
+        display: inline-block;
+        background: rgba(34, 197, 94, 0.1);
+        color: #15803D;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-warning {
+        display: inline-block;
+        background: rgba(245, 158, 11, 0.1);
+        color: #D97706;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    @@media (max-width: 640px) {
+        .admin-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .header-row {
+            flex-direction: column;
+            gap: var(--space-4);
+        }
     }
 </style>
