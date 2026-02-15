@@ -1,12 +1,12 @@
-<api type="debug" assembly-name="HospitalTriageAI" mvid="617fb2a0967e44a09f69f32a293acdd8">
+<api type="debug" assembly-name="HospitalTriageAI" mvid="702e3939fa0145dab40a9c1350c62c95">
   <java-to-managed>
-    <entry java-name="crc64c20f41a49ec28b65/MainActivity" managed-name="HospitalTriageAI.MainActivity, HospitalTriageAI" managed-type-token-id="33554449" />
-    <entry java-name="crc64c20f41a49ec28b65/MainActivity_BackPressedCallback" managed-name="HospitalTriageAI.MainActivity+BackPressedCallback, HospitalTriageAI" managed-type-token-id="33554532" />
-    <entry java-name="crc64c20f41a49ec28b65/MainApplication" managed-name="HospitalTriageAI.MainApplication, HospitalTriageAI" managed-type-token-id="33554450" />
+    <entry java-name="crc64c20f41a49ec28b65/MainActivity" managed-name="HospitalTriageAI.MainActivity, HospitalTriageAI" managed-type-token-id="33554450" />
+    <entry java-name="crc64c20f41a49ec28b65/MainActivity_BackPressedCallback" managed-name="HospitalTriageAI.MainActivity+BackPressedCallback, HospitalTriageAI" managed-type-token-id="33554534" />
+    <entry java-name="crc64c20f41a49ec28b65/MainApplication" managed-name="HospitalTriageAI.MainApplication, HospitalTriageAI" managed-type-token-id="33554451" />
   </java-to-managed>
   <managed-to-java>
-    <entry java-name="crc64c20f41a49ec28b65/MainActivity" managed-name="HospitalTriageAI.MainActivity, HospitalTriageAI" managed-type-token-id="33554449" />
-    <entry java-name="crc64c20f41a49ec28b65/MainActivity_BackPressedCallback" managed-name="HospitalTriageAI.MainActivity+BackPressedCallback, HospitalTriageAI" managed-type-token-id="33554532" />
-    <entry java-name="crc64c20f41a49ec28b65/MainApplication" managed-name="HospitalTriageAI.MainApplication, HospitalTriageAI" managed-type-token-id="33554450" />
+    <entry java-name="crc64c20f41a49ec28b65/MainActivity" managed-name="HospitalTriageAI.MainActivity, HospitalTriageAI" managed-type-token-id="33554450" />
+    <entry java-name="crc64c20f41a49ec28b65/MainActivity_BackPressedCallback" managed-name="HospitalTriageAI.MainActivity+BackPressedCallback, HospitalTriageAI" managed-type-token-id="33554534" />
+    <entry java-name="crc64c20f41a49ec28b65/MainApplication" managed-name="HospitalTriageAI.MainApplication, HospitalTriageAI" managed-type-token-id="33554451" />
   </managed-to-java>
 </api>

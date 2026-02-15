@@ -95,7 +95,7 @@ public class PdfReportService : IPdfReportService
                         c.Item().Text(label).Bold().FontSize(16).FontColor(textColor);
                     });
                     r.ConstantItem(80).AlignRight().AlignMiddle()
-                        .Text($"{patient.RiskPercentage ?? 0:F0}%").Bold().FontSize(24).FontColor(textColor);
+                        .Text($"{(patient.RiskPercentage ?? 0) * 100:F0}%").Bold().FontSize(24).FontColor(textColor);
                 });
             });
         });
@@ -214,7 +214,7 @@ public class PdfReportService : IPdfReportService
                         row.RelativeItem().Column(c =>
                         {
                             c.Item().Text("Risk Percentage:").Bold().FontSize(10);
-                            c.Item().Text($"{patient.RiskPercentage ?? 0:F1}%")
+                            c.Item().Text($"{(patient.RiskPercentage ?? 0) * 100:F1}%")
                                 .FontSize(12).Bold();
                         });
                         row.RelativeItem().Column(c =>
@@ -303,12 +303,12 @@ public class PdfReportService : IPdfReportService
         });
     }
 
-    private (string bgColor, string textColor, string label) GetRiskColors(TriageLevel level) => level switch
+    private (string bgColor, string textColor, string label) GetRiskColors(TriageLevel level) => (int)level switch
     {
-        TriageLevel.Emergency => (QuestColors.Red.Lighten4, QuestColors.Red.Darken2, "EMERGENCY - Immediate Care Required"),
-        TriageLevel.Urgent => (QuestColors.Orange.Lighten4, QuestColors.Orange.Darken2, "URGENT - Priority Care Needed"),
-        TriageLevel.Standard => (QuestColors.Blue.Lighten4, QuestColors.Blue.Darken2, "STANDARD - Timely Care"),
-        TriageLevel.NonUrgent => (QuestColors.Green.Lighten4, QuestColors.Green.Darken2, "LOW RISK - Routine Care"),
+        1 => (QuestColors.Red.Lighten4, QuestColors.Red.Darken2, "EMERGENCY - Immediate Care Required"),
+        2 => (QuestColors.Orange.Lighten4, QuestColors.Orange.Darken2, "URGENT - Priority Care Needed"),
+        3 => (QuestColors.Blue.Lighten4, QuestColors.Blue.Darken2, "STANDARD - Timely Care"),
+        4 => (QuestColors.Green.Lighten4, QuestColors.Green.Darken2, "LOW RISK - Routine Care"),
         _ => (QuestColors.Grey.Lighten4, QuestColors.Grey.Darken2, "UNASSESSED")
     };
 
@@ -321,12 +321,12 @@ public class PdfReportService : IPdfReportService
         _ => "None"
     };
 
-    private string GetTriageLevelLabel(TriageLevel level) => level switch
+    private string GetTriageLevelLabel(TriageLevel level) => (int)level switch
     {
-        TriageLevel.Emergency => "Emergency (Level 1)",
-        TriageLevel.Urgent => "Urgent (Level 2)",
-        TriageLevel.Standard => "Standard (Level 3)",
-        TriageLevel.NonUrgent => "Non-Urgent (Level 4)",
+        1 => "Emergency (Level 1)",
+        2 => "Urgent (Level 2)",
+        3 => "Standard (Level 3)",
+        4 => "Non-Urgent (Level 4)",
         _ => "Unassessed"
     };
 }

@@ -53,7 +53,7 @@ else
             <div class="risk-label">AI RISK ASSESSMENT</div>
             <div class="risk-level">@GetRiskLabel(_patient.CurrentTriageLevel)</div>
         </div>
-        <div class="risk-percentage">@((_patient.RiskPercentage ?? 0).ToString("F0"))%</div>
+        <div class="risk-percentage">@(((_patient.RiskPercentage ?? 0) * 100).ToString("F0"))%</div>
     </section>
 
     <div class="report-grid">
@@ -164,7 +164,7 @@ else
                     </div>
                     <div class="assessment-item">
                         <span class="label">Risk Score</span>
-                        <span class="value">@((_patient.RiskPercentage ?? 0).ToString("F1"))%</span>
+                        <span class="value">@(((_patient.RiskPercentage ?? 0) * 100).ToString("F1"))%</span>
                     </div>
                     <div class="assessment-item">
                         <span class="label">Recommended Dept</span>
@@ -378,30 +378,31 @@ else
         return $"{bytes / (1024.0 * 1024.0):F2} MB";
     }
 
-    private string GetRiskClass(TriageLevel level) => level switch
+    private string GetRiskClass(TriageLevel level) => (int)level switch
     {
-        TriageLevel.Emergency => "danger",
-        TriageLevel.Urgent => "warning",
-        TriageLevel.Standard => "info",
-        TriageLevel.NonUrgent => "success",
-        _ => "default"
+        1 => "danger",      // Emergency
+        2 => "warning",     // Urgent
+        3 => "info",        // Standard
+        4 => "success",     // NonUrgent
+        _ => "default"      // Unassessed or unknown
     };
 
-    private string GetRiskLabel(TriageLevel level) => level switch
+    private string GetRiskLabel(TriageLevel level) => (int)level switch
     {
-        TriageLevel.Emergency => "EMERGENCY - Immediate Care Required",
-        TriageLevel.Urgent => "URGENT - Priority Care Needed",
-        TriageLevel.Standard => "STANDARD - Timely Care",
-        TriageLevel.NonUrgent => "LOW RISK - Routine Care",
-        _ => "UNASSESSED"
+        1 => "EMERGENCY - Immediate Care Required",
+        2 => "URGENT - Priority Care Needed",
+        3 => "STANDARD - Timely Care",
+        4 => "LOW RISK - Routine Care",
+        0 => "UNASSESSED",
+        _ => level.ToString()
     };
 
-    private string GetTriageLevelLabel(TriageLevel level) => level switch
+    private string GetTriageLevelLabel(TriageLevel level) => (int)level switch
     {
-        TriageLevel.Emergency => "Emergency (Level 1)",
-        TriageLevel.Urgent => "Urgent (Level 2)",
-        TriageLevel.Standard => "Standard (Level 3)",
-        TriageLevel.NonUrgent => "Non-Urgent (Level 4)",
+        1 => "Emergency (Level 1)",
+        2 => "Urgent (Level 2)",
+        3 => "Standard (Level 3)",
+        4 => "Non-Urgent (Level 4)",
         _ => "Unassessed"
     };
 

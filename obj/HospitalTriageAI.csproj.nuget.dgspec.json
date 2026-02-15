@@ -1,24 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Lil_r\\Music\\CareSync_01\\HospitalTriageAI.csproj": {}
+    "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\HospitalTriageAI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Lil_r\\Music\\CareSync_01\\HospitalTriageAI.csproj": {
+    "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\HospitalTriageAI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Lil_r\\Music\\CareSync_01\\HospitalTriageAI.csproj",
+        "projectUniqueName": "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\HospitalTriageAI.csproj",
         "projectName": "HospitalTriageAI",
-        "projectPath": "C:\\Users\\Lil_r\\Music\\CareSync_01\\HospitalTriageAI.csproj",
-        "packagesPath": "C:\\Users\\Lil_r\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Lil_r\\Music\\CareSync_01\\obj\\",
+        "projectPath": "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\HospitalTriageAI.csproj",
+        "packagesPath": "C:\\Users\\mutha\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\obj\\",
         "projectStyle": "PackageReference",
         "crossTargeting": true,
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\Lil_r\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\mutha\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -38,11 +38,11 @@
             "targetAlias": "net10.0-android",
             "projectReferences": {}
           },
-          "net10.0-ios26.2": {
+          "net10.0-ios26.1": {
             "targetAlias": "net10.0-ios",
             "projectReferences": {}
           },
-          "net10.0-maccatalyst26.2": {
+          "net10.0-maccatalyst26.1": {
             "targetAlias": "net10.0-maccatalyst",
             "projectReferences": {}
           },
@@ -69,7 +69,7 @@
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
               "target": "Package",
-              "version": "[10.0.20, )"
+              "version": "[10.0.1, )"
             },
             "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",
@@ -91,7 +91,7 @@
             },
             "Microsoft.Maui.Controls": {
               "target": "Package",
-              "version": "[10.0.20, )"
+              "version": "[10.0.1, )"
             },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
@@ -115,12 +115,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[10.0.3, 10.0.3]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.Android": {
               "privateAssets": "all"
@@ -408,12 +402,12 @@
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
         },
-        "net10.0-ios26.2": {
+        "net10.0-ios26.1": {
           "targetAlias": "net10.0-ios",
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
               "target": "Package",
-              "version": "[10.0.20, )"
+              "version": "[10.0.1, )"
             },
             "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",
@@ -435,7 +429,7 @@
             },
             "Microsoft.Maui.Controls": {
               "target": "Package",
-              "version": "[10.0.20, )"
+              "version": "[10.0.1, )"
             },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
@@ -459,12 +453,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[10.0.3, 10.0.3]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.iOS": {
               "privateAssets": "all"
@@ -752,12 +740,12 @@
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
         },
-        "net10.0-maccatalyst26.2": {
+        "net10.0-maccatalyst26.1": {
           "targetAlias": "net10.0-maccatalyst",
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
               "target": "Package",
-              "version": "[10.0.20, )"
+              "version": "[10.0.1, )"
             },
             "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",
@@ -779,7 +767,7 @@
             },
             "Microsoft.Maui.Controls": {
               "target": "Package",
-              "version": "[10.0.20, )"
+              "version": "[10.0.1, )"
             },
             "Microsoft.NET.ILLink.Tasks": {
               "suppressParent": "All",
@@ -804,12 +792,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[10.0.3, 10.0.3]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.MacCatalyst": {
               "privateAssets": "all"
@@ -1102,7 +1084,7 @@
           "dependencies": {
             "Microsoft.AspNetCore.Components.WebView.Maui": {
               "target": "Package",
-              "version": "[10.0.20, )"
+              "version": "[10.0.1, )"
             },
             "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",
@@ -1124,7 +1106,7 @@
             },
             "Microsoft.Maui.Controls": {
               "target": "Package",
-              "version": "[10.0.20, )"
+              "version": "[10.0.1, )"
             },
             "QuestPDF": {
               "target": "Package",

@@ -130,7 +130,7 @@ else
                             </span>
                         </div>
                         <div class="alert-details">
-                            <span>Risk: @((patient.RiskPercentage ?? 0).ToString("F0"))%</span>
+                            <span>Risk: @(((patient.RiskPercentage ?? 0) * 100).ToString("F0"))%</span>
                             <span>Dept: @(patient.RecommendedDepartment ?? "N/A")</span>
                         </div>
                         <button class="btn btn-sm btn-accent" @onclick="() => OpenAssignModal(patient)">
@@ -180,7 +180,7 @@ else
                                 </td>
                                 <td>
                                     <div class="risk-percentage @GetRiskClass(patient.CurrentTriageLevel)">
-                                        @((patient.RiskPercentage ?? 0).ToString("F0"))%
+                                        @(((patient.RiskPercentage ?? 0) * 100).ToString("F0"))%
                                     </div>
                                 </td>
                                 <td>
@@ -518,22 +518,23 @@ else
         patient.CurrentTriageLevel == TriageLevel.Emergency || 
         patient.CurrentTriageLevel == TriageLevel.Urgent;
 
-    private string GetRiskClass(TriageLevel level) => level switch
+    private string GetRiskClass(TriageLevel level) => (int)level switch
     {
-        TriageLevel.Emergency => "danger",
-        TriageLevel.Urgent => "warning",
-        TriageLevel.Standard => "info",
-        TriageLevel.NonUrgent => "success",
-        _ => "default"
+        1 => "danger",      // Emergency
+        2 => "warning",     // Urgent
+        3 => "info",        // Standard
+        4 => "success",     // NonUrgent
+        _ => "default"      // Unassessed or unknown
     };
 
-    private string GetRiskLabel(TriageLevel level) => level switch
+    private string GetRiskLabel(TriageLevel level) => (int)level switch
     {
-        TriageLevel.Emergency => "Emergency",
-        TriageLevel.Urgent => "Urgent",
-        TriageLevel.Standard => "Standard",
-        TriageLevel.NonUrgent => "Low",
-        _ => "Unassessed"
+        1 => "Emergency",
+        2 => "Urgent",
+        3 => "Standard",
+        4 => "Low",
+        0 => "Unassessed",
+        _ => level.ToString()  // Fallback: show whatever value it is
     };
 
     private string GetStatusClass(PatientStatus status) => status switch

@@ -11,12 +11,12 @@
     [Parameter]
     public bool Compact { get; set; } = false;
 
-    private string GetLevelClass() => Level switch
+    private string GetLevelClass() => (int)Level switch
     {
-        TriageLevel.Emergency => "emergency",
-        TriageLevel.Urgent => "urgent",
-        TriageLevel.Standard => "standard",
-        TriageLevel.NonUrgent => "non-urgent",
+        1 => "emergency",
+        2 => "urgent",
+        3 => "standard",
+        4 => "non-urgent",
         _ => "unassessed"
     };
 
@@ -24,17 +24,25 @@
     {
         if (Compact)
         {
-            return Level switch
+            return (int)Level switch
             {
-                TriageLevel.Emergency => "E",
-                TriageLevel.Urgent => "U",
-                TriageLevel.Standard => "S",
-                TriageLevel.NonUrgent => "N",
+                1 => "E",
+                2 => "U",
+                3 => "S",
+                4 => "N",
                 _ => "?"
             };
         }
         
-        return Level.ToString();
+        return (int)Level switch
+        {
+            1 => "Emergency",
+            2 => "Urgent",
+            3 => "Standard",
+            4 => "Non-Urgent",
+            0 => "Unassessed",
+            _ => $"Level {(int)Level}"
+        };
     }
 }
 

@@ -1,32 +1,36 @@
 {
   "Files": [
     {
-      "Id": "C:\\Users\\Lil_r\\.nuget\\packages\\microsoft.aspnetcore.components.webview\\10.0.0\\staticwebassets\\blazor.modules.json",
+      "Id": "C:\\Users\\mutha\\.nuget\\packages\\microsoft.aspnetcore.components.webview\\10.0.0\\staticwebassets\\blazor.modules.json",
       "PackagePath": "staticwebassets\\_framework\\blazor.modules.json"
     },
     {
-      "Id": "C:\\Users\\Lil_r\\.nuget\\packages\\microsoft.aspnetcore.components.webview\\10.0.0\\staticwebassets\\blazor.webview.js",
+      "Id": "C:\\Users\\mutha\\.nuget\\packages\\microsoft.aspnetcore.components.webview\\10.0.0\\staticwebassets\\blazor.webview.js",
       "PackagePath": "staticwebassets\\_framework\\blazor.webview.js"
     },
     {
-      "Id": "C:\\Users\\Lil_r\\Music\\CareSync_01\\obj\\Debug\\net10.0-maccatalyst\\maccatalyst-x64\\scopedcss\\bundle\\HospitalTriageAI.styles.css",
+      "Id": "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\obj\\Debug\\net10.0-maccatalyst\\maccatalyst-x64\\scopedcss\\bundle\\HospitalTriageAI.styles.css",
       "PackagePath": "staticwebassets\\HospitalTriageAI.styles.css"
     },
     {
-      "Id": "C:\\Users\\Lil_r\\Music\\CareSync_01\\wwwroot\\app.css",
+      "Id": "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\wwwroot\\app.css",
       "PackagePath": "staticwebassets\\app.css"
     },
     {
-      "Id": "C:\\Users\\Lil_r\\Music\\CareSync_01\\wwwroot\\css\\app.css",
+      "Id": "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\wwwroot\\css\\app.css",
       "PackagePath": "staticwebassets\\css\\app.css"
     },
     {
-      "Id": "C:\\Users\\Lil_r\\Music\\CareSync_01\\wwwroot\\css\\auth.css",
+      "Id": "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\wwwroot\\css\\auth.css",
       "PackagePath": "staticwebassets\\css\\auth.css"
     },
     {
-      "Id": "C:\\Users\\Lil_r\\Music\\CareSync_01\\wwwroot\\index.html",
+      "Id": "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\wwwroot\\index.html",
       "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "C:\\Users\\mutha\\OneDrive\\Desktop\\carsync\\CareSync_01\\wwwroot\\logo.png",
+      "PackagePath": "staticwebassets\\logo.png"
     },
     {
       "Id": "obj\\Debug\\net10.0-maccatalyst\\maccatalyst-x64\\staticwebassets\\msbuild.HospitalTriageAI.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",

@@ -40,24 +40,24 @@ public class RiskPrediction
     /// <summary>
     /// Display color for UI
     /// </summary>
-    public string GetLevelColor() => PredictedLevel switch
+    public string GetLevelColor() => (int)PredictedLevel switch
     {
-        TriageLevel.Emergency => "#DC2626",    // Red
-        TriageLevel.Urgent => "#F97316",       // Orange
-        TriageLevel.Standard => "#FBBF24",     // Yellow
-        TriageLevel.NonUrgent => "#22C55E",    // Green
-        _ => "#6B7280"                          // Gray
+        1 => "#DC2626",    // Red - Emergency
+        2 => "#F97316",    // Orange - Urgent
+        3 => "#FBBF24",    // Yellow - Standard
+        4 => "#22C55E",    // Green - NonUrgent
+        _ => "#6B7280"     // Gray - Unassessed
     };
     
     /// <summary>
     /// Display text for triage level
     /// </summary>
-    public string GetLevelText() => PredictedLevel switch
+    public string GetLevelText() => (int)PredictedLevel switch
     {
-        TriageLevel.Emergency => "EMERGENCY - Immediate",
-        TriageLevel.Urgent => "URGENT - Within 15 min",
-        TriageLevel.Standard => "STANDARD - Within 1 hour",
-        TriageLevel.NonUrgent => "NON-URGENT - Can wait",
+        1 => "EMERGENCY - Immediate",
+        2 => "URGENT - Within 15 min",
+        3 => "STANDARD - Within 1 hour",
+        4 => "NON-URGENT - Can wait",
         _ => "Not Assessed"
     };
 }
