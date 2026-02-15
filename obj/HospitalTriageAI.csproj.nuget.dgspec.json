@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\HospitalTriageAI.csproj": {}
+    "C:\\Users\\Lil_r\\Music\\CareSync_01\\HospitalTriageAI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\HospitalTriageAI.csproj": {
+    "C:\\Users\\Lil_r\\Music\\CareSync_01\\HospitalTriageAI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\HospitalTriageAI.csproj",
+        "projectUniqueName": "C:\\Users\\Lil_r\\Music\\CareSync_01\\HospitalTriageAI.csproj",
         "projectName": "HospitalTriageAI",
-        "projectPath": "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\HospitalTriageAI.csproj",
+        "projectPath": "C:\\Users\\Lil_r\\Music\\CareSync_01\\HospitalTriageAI.csproj",
         "packagesPath": "C:\\Users\\Lil_r\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\obj\\",
+        "outputPath": "C:\\Users\\Lil_r\\Music\\CareSync_01\\obj\\",
         "projectStyle": "PackageReference",
         "crossTargeting": true,
         "fallbackFolders": [

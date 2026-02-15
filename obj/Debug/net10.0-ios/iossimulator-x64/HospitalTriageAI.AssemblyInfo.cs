@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("HospitalTriageAI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+45b3c207b3b0c62cd34f16c5151cf1814a4b07aa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+6827a8ce5aeb8b16b42c7a431cec329a8defb13d")]
 [assembly: System.Reflection.AssemblyProductAttribute("HospitalTriageAI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("HospitalTriageAI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

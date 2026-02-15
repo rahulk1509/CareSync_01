@@ -61,6 +61,11 @@ public class AppDbContext : DbContext
             entity.HasKey(d => d.Id);
             entity.Property(d => d.Name).IsRequired().HasMaxLength(200);
             entity.Property(d => d.Department).IsRequired().HasMaxLength(100);
+            entity.Property(d => d.Specialization).HasMaxLength(200);
+            entity.Property(d => d.Email).HasMaxLength(256);
+            entity.Property(d => d.Phone).HasMaxLength(20);
+            entity.Property(d => d.Qualification).HasMaxLength(100);
+            entity.HasIndex(d => d.Email).IsUnique();
             entity.HasMany(d => d.Assignments)
                   .WithOne(a => a.Doctor)
                   .HasForeignKey(a => a.DoctorId);

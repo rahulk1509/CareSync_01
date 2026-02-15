@@ -1,0 +1,720 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>HospitalTriageAI</name>
+    </assembly>
+    <members>
+        <member name="T:HospitalTriageAI.AI.CsvTrainingInput">
+            <summary>
+            Input data structure that matches the CSV file format for training
+            Columns: Patient_ID, Age, Gender, Symptoms, Blood_Pressure, Heart_Rate, Temperature, Pre_Existing_Conditions, Risk_Level
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.AI.TransformedTrainingInput">
+            <summary>
+            Transformed input for ML training with numeric features
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.AI.TrainingModelOutput">
+            <summary>
+            Output from the trained model prediction
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.AI.ModelInput">
+            <summary>
+            Input data structure for ML.NET model
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.AI.ModelOutput">
+            <summary>
+            Output data structure from ML.NET model
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.AI.TriagePredictionEngine">
+            <summary>
+            ML.NET prediction engine wrapper for triage risk assessment.
+            Falls back to rule-based prediction if no trained model is available.
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.AI.TriagePredictionEngine.TrainModelAsync(System.IO.Stream,System.Action{System.String})">
+            <summary>
+            Trains the model from CSV data and saves it
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.AI.TriagePredictionEngine.DetectSeparator(System.String)">
+            <summary>
+            Detects whether the file uses tabs or commas as separators
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.AI.TriagePredictionEngine.Predict(HospitalTriageAI.Models.TriageAssessment,System.Int32)">
+            <summary>
+            Predicts triage level using ML model or rule-based fallback
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.AI.TriagePredictionEngine.PredictWithRules(HospitalTriageAI.Models.TriageAssessment,System.Int32)">
+            <summary>
+            Rule-based prediction when ML model is not available
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Data.AppDbContext">
+            <summary>
+            SQLite database context for hospital triage system
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Data.AppDbContext.HashPassword(System.String)">
+            <summary>
+            Simple password hashing (use proper hashing in production)
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Data.AppDbContext.GetDatabasePath">
+            <summary>
+            Gets the SQLite database path for MAUI
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Data.Repositories.IPatientRepository">
+            <summary>
+            Repository interface for Patient operations
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Data.Repositories.PatientRepository">
+            <summary>
+            SQLite repository implementation for Patient
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.DepartmentPrediction">
+            <summary>
+            Department prediction result from the analysis system
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.DepartmentPrediction.RecommendedDepartment">
+            <summary>
+            Recommended department based on analysis
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.DepartmentPrediction.ConfidenceScore">
+            <summary>
+            Confidence score (0-100)
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.DepartmentPrediction.ClinicalExplanation">
+            <summary>
+            Clinical explanation summary
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.DepartmentPrediction.DepartmentScoresJson">
+            <summary>
+            JSON-serialized department scores for all departments
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.DepartmentPrediction.IsEmergencyPriority">
+            <summary>
+            Indicates if this was an emergency-priority decision
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.DepartmentPrediction.KeyFindings">
+            <summary>
+            Key clinical findings that influenced the decision
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.DepartmentPrediction.PredictedAt">
+            <summary>
+            Timestamp of prediction
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.DepartmentScore">
+            <summary>
+            Detailed department score breakdown
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.DepartmentAnalysisResult">
+            <summary>
+            Result of department analysis
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.Doctor">
+            <summary>
+            Doctor entity for availability management
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.Doctor.CanAcceptPatients">
+            <summary>
+            Check if doctor can take more patients
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.Doctor.AvailabilityStatus">
+            <summary>
+            Get availability status text
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.DoctorFormModel">
+            <summary>
+            Form model for creating/editing doctors with validation
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Models.DoctorFormModel.ToDoctor">
+            <summary>
+            Convert form model to Doctor entity
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Models.DoctorFormModel.FromDoctor(HospitalTriageAI.Models.Doctor)">
+            <summary>
+            Create form model from existing Doctor entity
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Models.DoctorFormModel.Reset">
+            <summary>
+            Reset form to defaults
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.Enums.Department">
+            <summary>
+            Hospital departments
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.Enums.SymptomSeverity">
+            <summary>
+            Severity levels for symptoms
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.Enums.TriageLevel">
+            <summary>
+            Standard emergency department triage levels
+            </summary>
+        </member>
+        <member name="F:HospitalTriageAI.Models.Enums.TriageLevel.Emergency">
+            <summary>Life-threatening - Immediate attention required</summary>
+        </member>
+        <member name="F:HospitalTriageAI.Models.Enums.TriageLevel.Urgent">
+            <summary>Potentially life-threatening - Seen within 15 minutes</summary>
+        </member>
+        <member name="F:HospitalTriageAI.Models.Enums.TriageLevel.Standard">
+            <summary>Serious - Seen within 30-60 minutes</summary>
+        </member>
+        <member name="F:HospitalTriageAI.Models.Enums.TriageLevel.NonUrgent">
+            <summary>Minor - Can wait 1-2 hours</summary>
+        </member>
+        <member name="F:HospitalTriageAI.Models.Enums.TriageLevel.Unassessed">
+            <summary>Not yet assessed</summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.Patient">
+            <summary>
+            Patient entity with basic information
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.PatientStatus">
+            <summary>
+            Patient queue status
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.PatientAssignment">
+            <summary>
+            Patient to Doctor assignment record
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.AssignmentStatus">
+            <summary>
+            Patient assignment status
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.RiskPrediction">
+            <summary>
+            AI prediction result from ML.NET model
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.RiskPrediction.PredictedLevel">
+            <summary>
+            Recommended triage level from AI
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.RiskPrediction.RiskScore">
+            <summary>
+            Risk score from 0 to 1 (higher = more urgent)
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.RiskPrediction.Confidence">
+            <summary>
+            Confidence of the prediction (0-1)
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.RiskPrediction.RiskFactors">
+            <summary>
+            Key factors that influenced the prediction
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.RiskPrediction.Recommendation">
+            <summary>
+            Recommendation for healthcare staff
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Models.RiskPrediction.PredictedAt">
+            <summary>
+            When the prediction was made
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Models.RiskPrediction.GetLevelColor">
+            <summary>
+            Display color for UI
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Models.RiskPrediction.GetLevelText">
+            <summary>
+            Display text for triage level
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.TriageAssessment">
+            <summary>
+            Triage assessment data including vital signs and symptoms
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.User">
+            <summary>
+            User entity for authentication
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Models.UserRole">
+            <summary>
+            User roles in the system
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.AssignmentService">
+            <summary>
+            Patient assignment service implementation
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.AuthService">
+            <summary>
+            Authentication service implementation with session persistence
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.DepartmentAnalysisService">
+            <summary>
+            Service for analyzing patient data and recommending appropriate hospital departments
+            using a rule-based weighted scoring system
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.AnalyzeAsync(HospitalTriageAI.Models.TriageAssessment,HospitalTriageAI.Models.Patient)">
+            <summary>
+            Analyzes patient vitals and symptoms to recommend the most appropriate department
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.CalculateEmergencyScore(HospitalTriageAI.Models.TriageAssessment,System.Collections.Generic.List{System.String})">
+            <summary>
+            Calculates Emergency department score
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.CalculateCardiologyScore(HospitalTriageAI.Models.TriageAssessment,System.Collections.Generic.List{System.String})">
+            <summary>
+            Calculates Cardiology department score
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.CalculatePulmonologyScore(HospitalTriageAI.Models.TriageAssessment,System.Collections.Generic.List{System.String})">
+            <summary>
+            Calculates Pulmonology department score
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.CalculateNeurologyScore(HospitalTriageAI.Models.TriageAssessment,System.Collections.Generic.List{System.String})">
+            <summary>
+            Calculates Neurology department score
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.CalculateOrthopedicsScore(HospitalTriageAI.Models.TriageAssessment,System.Collections.Generic.List{System.String})">
+            <summary>
+            Calculates Orthopedics department score
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.CalculateGeneralMedicineScore(HospitalTriageAI.Models.TriageAssessment,System.Collections.Generic.List{System.String})">
+            <summary>
+            Calculates General Medicine department score
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.CheckEmergencyPriority(HospitalTriageAI.Models.TriageAssessment)">
+            <summary>
+            Checks for emergency priority conditions
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.DetermineRecommendedDepartment(System.Collections.Generic.List{HospitalTriageAI.Models.DepartmentScore},System.Boolean)">
+            <summary>
+            Determines recommended department based on scores and priority rules
+            Priority: Emergency > Cardiology > Others
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.CalculateConfidenceScore(System.Collections.Generic.List{HospitalTriageAI.Models.DepartmentScore},HospitalTriageAI.Models.Enums.Department)">
+            <summary>
+            Calculates confidence score based on scoring spread
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.GenerateClinicalExplanation(HospitalTriageAI.Models.TriageAssessment,HospitalTriageAI.Models.Patient,HospitalTriageAI.Models.Enums.Department,System.Collections.Generic.List{HospitalTriageAI.Models.DepartmentScore},System.Collections.Generic.List{System.String})">
+            <summary>
+            Generates a clinical explanation referencing actual input values
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.DepartmentAnalysisService.GetDepartmentInterpretation(HospitalTriageAI.Models.Enums.Department,HospitalTriageAI.Models.DepartmentScore)">
+            <summary>
+            Gets clinical interpretation based on department
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.DoctorService">
+            <summary>
+            Doctor management service implementation
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.IAssignmentService">
+            <summary>
+            Patient assignment service interface
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAssignmentService.AssignPatientAsync(System.Int32,System.Int32,System.String)">
+            <summary>
+            Assign patient to doctor
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAssignmentService.UpdateStatusAsync(System.Int32,HospitalTriageAI.Models.AssignmentStatus)">
+            <summary>
+            Update assignment status
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAssignmentService.GetActiveAssignmentsAsync">
+            <summary>
+            Get all active assignments
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAssignmentService.GetDoctorAssignmentsAsync(System.Int32)">
+            <summary>
+            Get assignments for a doctor
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAssignmentService.GetPatientAssignmentAsync(System.Int32)">
+            <summary>
+            Get patient's current assignment
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAssignmentService.CompleteAssignmentAsync(System.Int32)">
+            <summary>
+            Complete an assignment
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.IAuthService">
+            <summary>
+            Authentication service interface
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Services.IAuthService.CurrentUser">
+            <summary>
+            Get current logged in user
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Services.IAuthService.IsAuthenticated">
+            <summary>
+            Check if user is logged in
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Services.IAuthService.IsAdmin">
+            <summary>
+            Check if current user is admin
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Services.IAuthService.IsPatient">
+            <summary>
+            Check if current user is patient
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Services.IAuthService.IsDoctor">
+            <summary>
+            Check if current user is doctor
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Services.IAuthService.CurrentRole">
+            <summary>
+            Get current user's role
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAuthService.HasRole(HospitalTriageAI.Models.UserRole)">
+            <summary>
+            Check if current user has a specific role
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAuthService.HasAnyRole(HospitalTriageAI.Models.UserRole[])">
+            <summary>
+            Check if current user has any of the specified roles
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAuthService.LoginAsync(System.String,System.String)">
+            <summary>
+            Authenticate user with email and password
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAuthService.RegisterAsync(System.String,System.String,System.String,HospitalTriageAI.Models.UserRole)">
+            <summary>
+            Register a new user
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAuthService.LogoutAsync">
+            <summary>
+            Log out current user
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IAuthService.TryRestoreSessionAsync">
+            <summary>
+            Try to restore session from stored credentials
+            </summary>
+        </member>
+        <member name="E:HospitalTriageAI.Services.IAuthService.OnAuthStateChanged">
+            <summary>
+            Event fired when auth state changes
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.IDepartmentAnalysisService">
+            <summary>
+            Service for analyzing patient data and recommending appropriate hospital departments
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDepartmentAnalysisService.AnalyzeAsync(HospitalTriageAI.Models.TriageAssessment,HospitalTriageAI.Models.Patient)">
+            <summary>
+            Analyzes patient vitals and symptoms to recommend the most appropriate department
+            </summary>
+            <param name="assessment">The triage assessment containing vitals and symptoms</param>
+            <param name="patient">The patient being assessed</param>
+            <returns>Department analysis result with recommendation and explanation</returns>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDepartmentAnalysisService.SavePredictionAsync(HospitalTriageAI.Models.DepartmentPrediction)">
+            <summary>
+            Saves department prediction to the database
+            </summary>
+            <param name="prediction">The prediction to save</param>
+            <returns>The saved prediction with generated ID</returns>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDepartmentAnalysisService.GetPatientPredictionsAsync(System.Int32)">
+            <summary>
+            Gets department prediction history for a patient
+            </summary>
+            <param name="patientId">The patient ID</param>
+            <returns>List of past predictions</returns>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDepartmentAnalysisService.GetLatestPredictionAsync(System.Int32)">
+            <summary>
+            Gets the latest department prediction for a patient
+            </summary>
+            <param name="patientId">The patient ID</param>
+            <returns>The most recent prediction or null</returns>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDepartmentAnalysisService.GetPredictionsAsync(System.Nullable{HospitalTriageAI.Models.Enums.Department},System.Int32)">
+            <summary>
+            Gets all predictions with optional filtering
+            </summary>
+            <param name="department">Optional department filter</param>
+            <param name="limit">Maximum number of results</param>
+            <returns>List of predictions</returns>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDepartmentAnalysisService.GetDepartmentDistributionAsync">
+            <summary>
+            Gets department distribution statistics
+            </summary>
+            <returns>Dictionary of department to patient count</returns>
+        </member>
+        <member name="T:HospitalTriageAI.Services.IDoctorService">
+            <summary>
+            Doctor management service interface
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.GetAllDoctorsAsync">
+            <summary>
+            Get all doctors
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.GetAvailableDoctorsAsync">
+            <summary>
+            Get available doctors
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.GetDoctorsByDepartmentAsync(System.String)">
+            <summary>
+            Get doctors by department
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.GetDoctorByIdAsync(System.Int32)">
+            <summary>
+            Get doctor by ID
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.CreateDoctorAsync(HospitalTriageAI.Models.Doctor)">
+            <summary>
+            Create a new doctor
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.UpdateDoctorAsync(HospitalTriageAI.Models.Doctor)">
+            <summary>
+            Update an existing doctor
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.DeleteDoctorAsync(System.Int32)">
+            <summary>
+            Delete a doctor
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.ToggleAvailabilityAsync(System.Int32)">
+            <summary>
+            Toggle doctor availability
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.UpdatePatientCountAsync(System.Int32,System.Int32)">
+            <summary>
+            Update doctor's patient count
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.GetStatsAsync">
+            <summary>
+            Get doctor statistics
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IDoctorService.EmailExistsAsync(System.String,System.Nullable{System.Int32})">
+            <summary>
+            Check if email already exists
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.DoctorStats">
+            <summary>
+            Doctor statistics DTO
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.IModelTrainingService">
+            <summary>
+            Service interface for training the AI model from CSV data
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IModelTrainingService.TrainFromCsvAsync(System.IO.Stream,System.Action{System.String})">
+            <summary>
+            Trains the triage prediction model from a CSV file
+            </summary>
+            <param name="csvStream">Stream containing the CSV data</param>
+            <param name="progressCallback">Optional callback for training progress updates</param>
+            <returns>Training result with success status and message</returns>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IModelTrainingService.GetModelInfo">
+            <summary>
+            Gets information about the currently loaded model
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Services.IModelTrainingService.HasTrainedModel">
+            <summary>
+            Checks if a trained model exists
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.TrainingResult">
+            <summary>
+            Result of a training operation
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.ModelInfo">
+            <summary>
+            Information about the current model
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.IPatientService">
+            <summary>
+            Service interface for patient operations
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IPatientService.GetPatientQueueAsync">
+            <summary>
+            Get patients sorted by risk for queue display
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IPatientService.GetHighRiskPatientsAsync">
+            <summary>
+            Get high risk patients (Emergency or Urgent)
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IPatientService.GetStatsAsync">
+            <summary>
+            Get patient statistics for dashboard
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.PatientStats">
+            <summary>
+            Patient statistics DTO
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.ITriageService">
+            <summary>
+            Service interface for triage operations
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.ITriageService.AssessPatientAsync(HospitalTriageAI.Models.Patient,HospitalTriageAI.Models.TriageAssessment)">
+            <summary>
+            Performs AI-powered triage assessment
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.ITriageService.GetPatientAssessmentsAsync(System.Int32)">
+            <summary>
+            Gets assessment history for a patient
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.ITriageService.SaveAssessmentAsync(HospitalTriageAI.Models.TriageAssessment)">
+            <summary>
+            Saves a completed assessment
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.ITriageService.GetPatientsByTriageLevelAsync">
+            <summary>
+            Gets all patients grouped by triage level for dashboard
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.ModelTrainingService">
+            <summary>
+            Service for training the AI model from CSV data
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.PatientService">
+            <summary>
+            Patient service implementation
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.TriageService">
+            <summary>
+            Triage service implementation with AI integration
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.TriageService.GetDefaultDepartment(HospitalTriageAI.Models.Enums.TriageLevel)">
+            <summary>
+            Gets default department based on triage level (fallback)
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Resource">
+            <summary>
+            Android Resource Designer class.
+            Exposes the Android Resource designer assembly into the project Namespace.
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Components.Pages.PatientPortal.PatientRegistrationModel">
+            <summary>
+            ViewModel for patient registration form
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Components.Shared.RoleGuard.AllowedRoles">
+            <summary>
+            The roles that are allowed to access this content.
+            If empty, only authentication is required.
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Components.Shared.RoleGuard.RequireAuthentication">
+            <summary>
+            If true, requires the user to be authenticated (regardless of role).
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Components.Shared.RoleGuard.RedirectUrl">
+            <summary>
+            Custom redirect URL when unauthorized. Defaults to /unauthorized.
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Components.Shared.RoleGuard.RedirectToLoginWhenUnauthenticated">
+            <summary>
+            If true, redirects to login instead of unauthorized page when not authenticated.
+            </summary>
+        </member>
+        <member name="P:HospitalTriageAI.Components.Shared.RoleGuard.ChildContent">
+            <summary>
+            The child content to render when authorized.
+            </summary>
+        </member>
+    </members>
+</doc>

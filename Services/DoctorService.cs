@@ -50,6 +50,46 @@ public class DoctorService : IDoctorService
             .FirstOrDefaultAsync(d => d.Id == id);
     }
     
+    public async Task<Doctor> CreateDoctorAsync(Doctor doctor)
+    {
+        // Ensure new doctor starts with zero workload
+        doctor.CurrentPatientCount = 0;
+        doctor.CreatedAt = DateTime.Now;
+        
+        _context.Doctors.Add(doctor);
+        await _context.SaveChangesAsync();
+        return doctor;
+    }
+    
+    public async Task<Doctor?> UpdateDoctorAsync(Doctor doctor)
+    {
+        var existing = await _context.Doctors.FindAsync(doctor.Id);
+        if (existing == null) return null;
+        
+        existing.Name = doctor.Name;
+        existing.Department = doctor.Department;
+        existing.Specialization = doctor.Specialization;
+        existing.Email = doctor.Email;
+        existing.Phone = doctor.Phone;
+        existing.MaxPatientCapacity = doctor.MaxPatientCapacity;
+        existing.IsAvailable = doctor.IsAvailable;
+        existing.YearsOfExperience = doctor.YearsOfExperience;
+        existing.Qualification = doctor.Qualification;
+        
+        await _context.SaveChangesAsync();
+        return existing;
+    }
+    
+    public async Task<bool> DeleteDoctorAsync(int id)
+    {
+        var doctor = await _context.Doctors.FindAsync(id);
+        if (doctor == null) return false;
+        
+        _context.Doctors.Remove(doctor);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+    
     public async Task<bool> ToggleAvailabilityAsync(int doctorId)
     {
         var doctor = await _context.Doctors.FindAsync(doctorId);
@@ -79,5 +119,13 @@ public class DoctorService : IDoctorService
             TotalPatientLoad = doctors.Sum(d => d.CurrentPatientCount),
             TotalCapacity = doctors.Sum(d => d.MaxPatientCapacity)
         };
+    }
+    
+    public async Task<bool> EmailExistsAsync(string email, int? excludeId = null)
+    {
+        return await _context.Doctors
+            .AnyAsync(d => d.Email != null && 
+                          d.Email.ToLower() == email.ToLower() && 
+                          (excludeId == null || d.Id != excludeId));
     }
 }

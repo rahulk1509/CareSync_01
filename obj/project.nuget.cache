@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "9cAF3JHZA2M=",
+  "dgSpecHash": "aMv9y0HENe0=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Lil_r\\OneDrive\\Desktop\\hackathon1\\CareSync_01\\HospitalTriageAI.csproj",
+  "projectFilePath": "C:\\Users\\Lil_r\\Music\\CareSync_01\\HospitalTriageAI.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Lil_r\\.nuget\\packages\\googlegson\\2.13.1.1\\googlegson.2.13.1.1.nupkg.sha512",
     "C:\\Users\\Lil_r\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",

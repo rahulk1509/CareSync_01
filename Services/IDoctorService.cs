@@ -28,6 +28,21 @@ public interface IDoctorService
     Task<Doctor?> GetDoctorByIdAsync(int id);
     
     /// <summary>
+    /// Create a new doctor
+    /// </summary>
+    Task<Doctor> CreateDoctorAsync(Doctor doctor);
+    
+    /// <summary>
+    /// Update an existing doctor
+    /// </summary>
+    Task<Doctor?> UpdateDoctorAsync(Doctor doctor);
+    
+    /// <summary>
+    /// Delete a doctor
+    /// </summary>
+    Task<bool> DeleteDoctorAsync(int id);
+    
+    /// <summary>
     /// Toggle doctor availability
     /// </summary>
     Task<bool> ToggleAvailabilityAsync(int doctorId);
@@ -41,6 +56,11 @@ public interface IDoctorService
     /// Get doctor statistics
     /// </summary>
     Task<DoctorStats> GetStatsAsync();
+    
+    /// <summary>
+    /// Check if email already exists
+    /// </summary>
+    Task<bool> EmailExistsAsync(string email, int? excludeId = null);
 }
 
 /// <summary>

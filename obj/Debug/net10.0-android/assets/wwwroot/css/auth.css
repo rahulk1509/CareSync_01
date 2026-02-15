@@ -1,0 +1,371 @@
+/* ========================================
+   Shared Authentication Portal Styles
+   Used by: PatientPortal, Admin Portal
+   ======================================== */
+
+/* Page Container */
+.auth-page {
+    min-height: 100vh;
+    background: var(--gray-50);
+    padding: var(--space-6) var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Loading State */
+.auth-loading {
+    text-align: center;
+    padding: var(--space-12);
+}
+
+.auth-loading p {
+    margin-top: var(--space-4);
+    color: var(--gray-500);
+    font-size: 0.9375rem;
+}
+
+/* Auth Container (centers and constrains width) */
+.auth-container {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+/* Portal Header (branding + title) */
+.auth-header {
+    text-align: center;
+    margin-bottom: var(--space-8);
+}
+
+.auth-header h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: var(--space-2);
+}
+
+.auth-header .auth-subtitle {
+    color: var(--gray-500);
+    font-size: 1rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Brand Icon */
+.auth-brand-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-4);
+}
+
+/* Auth Card */
+.auth-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08),
+                0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Form Group */
+.auth-card .form-group {
+    margin-bottom: var(--space-5);
+}
+
+.auth-card .form-group:last-of-type {
+    margin-bottom: var(--space-4);
+}
+
+/* Form Label */
+.auth-card .form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: var(--space-2);
+}
+
+/* Auth Input */
+.auth-input {
+    width: 100%;
+    height: 48px;
+    padding: 0 var(--space-4);
+    font-size: 1rem;
+    color: var(--gray-900);
+    background: var(--gray-50);
+    border: 1.5px solid var(--primary-border);
+    border-radius: var(--radius-md);
+    outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+.auth-input::placeholder {
+    color: var(--gray-400);
+}
+
+.auth-input:focus {
+    border-color: var(--primary);
+    background: var(--white);
+    box-shadow: 0 0 0 3px rgba(78, 189, 184, 0.15);
+}
+
+/* Primary Button */
+.auth-btn {
+    width: 100%;
+    height: 50px;
+    margin-top: var(--space-6);
+    background: var(--primary);
+    color: var(--white);
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    transition: all 0.2s ease;
+    font-family: 'Poppins', sans-serif;
+}
+
+.auth-btn:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(78, 189, 184, 0.3);
+}
+
+.auth-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.auth-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Button Spinner */
+.auth-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: var(--white);
+    border-radius: 50%;
+    animation: auth-spin 0.8s linear infinite;
+}
+
+@keyframes auth-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Alert Error */
+.auth-alert {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: var(--radius-md);
+    color: #dc2626;
+    font-size: 0.875rem;
+    margin-bottom: var(--space-4);
+}
+
+.auth-alert svg {
+    flex-shrink: 0;
+}
+
+/* Auth Footer (links section) */
+.auth-footer {
+    text-align: center;
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--gray-200);
+}
+
+.auth-footer p {
+    margin: 0;
+    color: var(--gray-500);
+    font-size: 0.875rem;
+}
+
+.auth-footer a {
+    color: var(--primary);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.auth-footer a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* Demo Credentials Box */
+.auth-demo {
+    text-align: center;
+    margin-top: var(--space-6);
+    padding: var(--space-3) var(--space-4);
+    background: var(--primary-bg);
+    border-radius: var(--radius-md);
+}
+
+.auth-demo p {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--primary-dark);
+}
+
+/* ========================================
+   Portal Content (Logged In State)
+   ======================================== */
+
+.portal-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: var(--space-6);
+}
+
+/* Portal Header */
+.portal-header {
+    margin-bottom: var(--space-8);
+}
+
+.portal-header.centered {
+    text-align: center;
+}
+
+.portal-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: var(--space-2);
+}
+
+.portal-header .portal-subtitle {
+    color: var(--gray-500);
+    font-size: 1rem;
+    margin: 0;
+}
+
+.portal-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+}
+
+/* Portal Grid (action cards) */
+.portal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--space-6);
+}
+
+/* Portal Card */
+.portal-card {
+    background: var(--white);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: var(--space-6);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.portal-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.portal-card-icon {
+    width: 56px;
+    height: 56px;
+    background: var(--primary-bg);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-4);
+    color: var(--primary);
+}
+
+.portal-card h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: var(--space-2);
+}
+
+.portal-card p {
+    color: var(--gray-500);
+    font-size: 0.875rem;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Status Badges */
+.portal-badge {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.portal-badge-active {
+    background: rgba(34, 197, 94, 0.1);
+    color: #15803D;
+}
+
+.portal-badge-warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #D97706;
+}
+
+/* Large Spinner */
+.spinner-lg {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: auth-spin 0.8s linear infinite;
+    margin: 0 auto;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .auth-page {
+        padding: var(--space-4);
+    }
+    
+    .auth-card {
+        padding: var(--space-5);
+    }
+    
+    .portal-header-row {
+        flex-direction: column;
+    }
+    
+    .portal-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 380px) {
+    .auth-card {
+        padding: var(--space-4);
+    }
+    
+    .auth-header h1 {
+        font-size: 1.5rem;
+    }
+}
