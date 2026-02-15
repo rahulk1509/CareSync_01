@@ -1,2 +1,3 @@
-2026/02/15-11:45:38.426 c850 Creating DB C:\Users\Lil_r\Music\CareSync_01\bin\Debug\net10.0-windows10.0.19041.0\win-x64\HospitalTriageAI.exe.WebView2\EBWebView\Default\Session Storage since it was missing.
-2026/02/15-11:45:38.451 c850 Reusing MANIFEST C:\Users\Lil_r\Music\CareSync_01\bin\Debug\net10.0-windows10.0.19041.0\win-x64\HospitalTriageAI.exe.WebView2\EBWebView\Default\Session Storage/MANIFEST-000001
+2026/02/15-14:20:33.541 a808 Reusing MANIFEST C:\Users\Lil_r\Music\CareSync_01\bin\Debug\net10.0-windows10.0.19041.0\win-x64\HospitalTriageAI.exe.WebView2\EBWebView\Default\Session Storage/MANIFEST-000001
+2026/02/15-14:20:33.545 a808 Recovering log #3
+2026/02/15-14:20:33.550 a808 Reusing old log C:\Users\Lil_r\Music\CareSync_01\bin\Debug\net10.0-windows10.0.19041.0\win-x64\HospitalTriageAI.exe.WebView2\EBWebView\Default\Session Storage/000003.log 

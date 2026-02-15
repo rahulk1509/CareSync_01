@@ -194,7 +194,7 @@
                             <td><code>Temperature</code></td>
                             <td>Float</td>
                             <td>37.5</td>
-                            <td>Body temperature (�C)</td>
+                            <td>Body temperature (�C)</td>
                         </tr>
                         <tr>
                             <td><code>Pre_Existing_Conditions</code></td>
@@ -216,6 +216,257 @@
                 The system will auto-detect the format.
             </p>
         </div>
+
+        <!-- Bias/Fairness Analysis Section -->
+        <div class="bias-analysis-section">
+            <div class="section-header">
+                <div>
+                    <h3>Bias & Fairness Analysis</h3>
+                    <p>Analyze model predictions across demographic groups</p>
+                </div>
+                <button class="btn btn-outline" @onclick="OpenBiasAnalysisModal">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    Analyze CSV Data
+                </button>
+            </div>
+
+            @if (_biasAnalysis != null && _biasAnalysis.IsAvailable)
+            {
+                <div class="analysis-results">
+                    <!-- Gender Accuracy Card -->
+                    <div class="analysis-card">
+                        <h4>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            Accuracy by Gender
+                        </h4>
+                        <div class="gender-metrics">
+                            <div class="gender-item male">
+                                <span class="gender-icon">♂</span>
+                                <div class="gender-info">
+                                    <span class="gender-label">Male</span>
+                                    <span class="gender-value">@(_biasAnalysis.GenderAnalysis?.Male.Accuracy.ToString("F1"))%</span>
+                                    <span class="sample-count">n=@(_biasAnalysis.GenderAnalysis?.Male.SampleCount)</span>
+                                </div>
+                                <div class="accuracy-bar-mini">
+                                    <div class="accuracy-fill" style="width: @(_biasAnalysis.GenderAnalysis?.Male.Accuracy ?? 0)%"></div>
+                                </div>
+                            </div>
+                            <div class="gender-item female">
+                                <span class="gender-icon">♀</span>
+                                <div class="gender-info">
+                                    <span class="gender-label">Female</span>
+                                    <span class="gender-value">@(_biasAnalysis.GenderAnalysis?.Female.Accuracy.ToString("F1"))%</span>
+                                    <span class="sample-count">n=@(_biasAnalysis.GenderAnalysis?.Female.SampleCount)</span>
+                                </div>
+                                <div class="accuracy-bar-mini">
+                                    <div class="accuracy-fill" style="width: @(_biasAnalysis.GenderAnalysis?.Female.Accuracy ?? 0)%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="disparity-info @((_biasAnalysis.GenderAnalysis?.AccuracyDisparity ?? 0) < 5 ? "low" : "high")">
+                            <span>Disparity:</span>
+                            <strong>@(_biasAnalysis.GenderAnalysis?.AccuracyDisparity.ToString("F1"))%</strong>
+                            @if ((_biasAnalysis.GenderAnalysis?.AccuracyDisparity ?? 0) < 5)
+                            {
+                                <span class="status-badge good">Fair</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge warning">Review Needed</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Age Group Distribution Card -->
+                    <div class="analysis-card wide">
+                        <h4>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="3" y1="9" x2="21" y2="9"/>
+                                <line x1="9" y1="21" x2="9" y2="9"/>
+                            </svg>
+                            Risk Distribution by Age Group
+                        </h4>
+                        <div class="age-chart">
+                            @foreach (var ageGroup in _biasAnalysis.AgeGroupAnalysis)
+                            {
+                                <div class="age-group-bar">
+                                    <div class="bar-label">@ageGroup.AgeGroup</div>
+                                    <div class="stacked-bar">
+                                        <div class="bar-segment low" style="width: @ageGroup.LowRiskPercent%"
+                                             title="Low: @ageGroup.LowRiskCount (@ageGroup.LowRiskPercent.ToString("F0")%)"></div>
+                                        <div class="bar-segment medium" style="width: @ageGroup.MediumRiskPercent%"
+                                             title="Medium: @ageGroup.MediumRiskCount (@ageGroup.MediumRiskPercent.ToString("F0")%)"></div>
+                                        <div class="bar-segment high" style="width: @ageGroup.HighRiskPercent%"
+                                             title="High: @ageGroup.HighRiskCount (@ageGroup.HighRiskPercent.ToString("F0")%)"></div>
+                                        <div class="bar-segment critical" style="width: @ageGroup.CriticalRiskPercent%"
+                                             title="Critical: @ageGroup.CriticalRiskCount (@ageGroup.CriticalRiskPercent.ToString("F0")%)"></div>
+                                    </div>
+                                    <div class="bar-count">n=@ageGroup.SampleCount</div>
+                                </div>
+                            }
+                        </div>
+                        <div class="chart-legend">
+                            <span class="legend-item"><span class="dot low"></span>Low</span>
+                            <span class="legend-item"><span class="dot medium"></span>Medium</span>
+                            <span class="legend-item"><span class="dot high"></span>High</span>
+                            <span class="legend-item"><span class="dot critical"></span>Critical</span>
+                        </div>
+                    </div>
+
+                    <!-- False Positive/Negative Rates Card -->
+                    <div class="analysis-card">
+                        <h4>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            Error Rates by Gender
+                        </h4>
+                        <div class="error-rates-table">
+                            <div class="error-row header">
+                                <span>Metric</span>
+                                <span>Male</span>
+                                <span>Female</span>
+                            </div>
+                            <div class="error-row">
+                                <span>False Positive Rate</span>
+                                <span class="@((_biasAnalysis.GenderAnalysis?.Male.FalsePositiveRate ?? 0) > 15 ? "warning" : "")">
+                                    @(_biasAnalysis.GenderAnalysis?.Male.FalsePositiveRate.ToString("F1"))%
+                                </span>
+                                <span class="@((_biasAnalysis.GenderAnalysis?.Female.FalsePositiveRate ?? 0) > 15 ? "warning" : "")">
+                                    @(_biasAnalysis.GenderAnalysis?.Female.FalsePositiveRate.ToString("F1"))%
+                                </span>
+                            </div>
+                            <div class="error-row">
+                                <span>False Negative Rate</span>
+                                <span class="@((_biasAnalysis.GenderAnalysis?.Male.FalseNegativeRate ?? 0) > 10 ? "danger" : "")">
+                                    @(_biasAnalysis.GenderAnalysis?.Male.FalseNegativeRate.ToString("F1"))%
+                                </span>
+                                <span class="@((_biasAnalysis.GenderAnalysis?.Female.FalseNegativeRate ?? 0) > 10 ? "danger" : "")">
+                                    @(_biasAnalysis.GenderAnalysis?.Female.FalseNegativeRate.ToString("F1"))%
+                                </span>
+                            </div>
+                        </div>
+                        <p class="error-note">
+                            <strong>Note:</strong> False negatives (predicting low risk when high) are more critical in healthcare.
+                        </p>
+                    </div>
+
+                    <!-- Fairness Score Card -->
+                    <div class="analysis-card fairness-card">
+                        <h4>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                            Overall Fairness Score
+                        </h4>
+                        <div class="fairness-display">
+                            <div class="fairness-gauge">
+                                <svg viewBox="0 0 100 50" class="gauge-svg">
+                                    <path d="M 10 45 A 35 35 0 0 1 90 45" fill="none" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round"/>
+                                    <path d="M 10 45 A 35 35 0 0 1 90 45" fill="none" stroke="@GetFairnessColor(_biasAnalysis.FairnessScore)" 
+                                          stroke-width="8" stroke-linecap="round"
+                                          stroke-dasharray="@((_biasAnalysis.FairnessScore / 100) * 110) 110"/>
+                                </svg>
+                                <div class="gauge-value">@_biasAnalysis.FairnessScore.ToString("F0")</div>
+                            </div>
+                            <div class="fairness-rating @_biasAnalysis.FairnessRating.ToLower()">
+                                @_biasAnalysis.FairnessRating
+                            </div>
+                        </div>
+                        <div class="analysis-meta">
+                            <span>Records analyzed: @_biasAnalysis.TotalRecords</span>
+                            <span>Analyzed: @_biasAnalysis.AnalysisDate?.ToString("MMM dd, yyyy HH:mm")</span>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="no-analysis">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <p>No bias analysis available. Upload CSV data to analyze model fairness across demographic groups.</p>
+                </div>
+            }
+        </div>
+
+        @* Bias Analysis Modal *@
+        @if (_showBiasAnalysisModal)
+        {
+            <div class="modal-overlay" @onclick="CloseBiasAnalysisModal">
+                <div class="modal-content" @onclick:stopPropagation="true">
+                    <div class="modal-header">
+                        <h2>Analyze Bias & Fairness</h2>
+                        <button class="modal-close" @onclick="CloseBiasAnalysisModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        @if (_isAnalyzing)
+                        {
+                            <div class="training-progress">
+                                <div class="progress-spinner"></div>
+                                <p class="progress-text">Analyzing data for bias metrics...</p>
+                            </div>
+                        }
+                        else if (_analysisComplete)
+                        {
+                            <div class="training-success">
+                                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                <h3>Analysis Complete!</h3>
+                                <p>Bias and fairness metrics have been calculated for your dataset.</p>
+                                <button class="btn btn-primary" @onclick="CloseBiasAnalysisModal">View Results</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="upload-section">
+                                <div class="upload-icon">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+                                    </svg>
+                                </div>
+                                <p>Upload a CSV file to analyze model predictions for bias</p>
+                                <p class="hint">Uses the same format as training data</p>
+                                
+                                @if (!string.IsNullOrEmpty(_analysisError))
+                                {
+                                    <div class="alert-error">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="12" y1="8" x2="12" y2="12"/>
+                                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                        </svg>
+                                        @_analysisError
+                                    </div>
+                                }
+                                
+                                <button class="btn btn-primary btn-large" @onclick="SelectCsvForAnalysis">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14,2 14,8 20,8"/>
+                                    </svg>
+                                    Select CSV File
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
 
         @* Training Modal *@
         @if (_showTrainingModal)
@@ -369,10 +620,18 @@
     private TimeSpan? _trainingDuration;
     private string? _uploadError;
     private int _progressPercent = 0;
+    
+    // Bias analysis state
+    private BiasAnalysisResult? _biasAnalysis;
+    private bool _showBiasAnalysisModal = false;
+    private bool _isAnalyzing = false;
+    private bool _analysisComplete = false;
+    private string? _analysisError;
 
     protected override void OnInitialized()
     {
         RefreshModelInfo();
+        _biasAnalysis = ModelTrainingService.GetCachedBiasAnalysis();
     }
 
     private void RefreshModelInfo()
@@ -402,6 +661,100 @@
     {
         _showTrainingModal = false;
         RefreshModelInfo();
+        _biasAnalysis = ModelTrainingService.GetCachedBiasAnalysis();
+    }
+    
+    // Bias Analysis Methods
+    private void OpenBiasAnalysisModal()
+    {
+        _showBiasAnalysisModal = true;
+        _isAnalyzing = false;
+        _analysisComplete = false;
+        _analysisError = null;
+    }
+    
+    private void CloseBiasAnalysisModal()
+    {
+        _showBiasAnalysisModal = false;
+    }
+    
+    private async Task SelectCsvForAnalysis()
+    {
+        try
+        {
+            _analysisError = null;
+
+            var customFileType = new FilePickerFileType(
+                new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.WinUI, new[] { ".csv" } },
+                    { DevicePlatform.Android, new[] { "text/csv", "text/comma-separated-values", "application/csv", "*/*" } },
+                    { DevicePlatform.iOS, new[] { "public.comma-separated-values-text" } },
+                    { DevicePlatform.MacCatalyst, new[] { "public.comma-separated-values-text" } }
+                });
+
+            var options = new PickOptions
+            {
+                PickerTitle = "Select CSV file for bias analysis",
+                FileTypes = customFileType
+            };
+
+            var result = await FilePicker.Default.PickAsync(options);
+
+            if (result != null)
+            {
+                await AnalyzeBiasFromFile(result);
+            }
+        }
+        catch (Exception ex)
+        {
+            _analysisError = $"Error selecting file: {ex.Message}";
+        }
+    }
+    
+    private async Task AnalyzeBiasFromFile(FileResult file)
+    {
+        _isAnalyzing = true;
+        StateHasChanged();
+
+        try
+        {
+            using var stream = await file.OpenReadAsync();
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            _biasAnalysis = await ModelTrainingService.AnalyzeBiasAsync(memoryStream);
+            
+            if (_biasAnalysis.IsAvailable)
+            {
+                _analysisComplete = true;
+            }
+            else
+            {
+                _analysisError = "Could not analyze the file. Please ensure it has at least 10 valid records.";
+                _isAnalyzing = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _analysisError = $"Analysis failed: {ex.Message}";
+            _isAnalyzing = false;
+        }
+
+        StateHasChanged();
+    }
+    
+    private string GetFairnessColor(double score)
+    {
+        return score switch
+        {
+            >= 90 => "#22c55e",
+            >= 80 => "#84cc16",
+            >= 70 => "#f59e0b",
+            >= 60 => "#f97316",
+            _ => "#ef4444"
+        };
     }
 
     private async Task SelectCsvFile()
@@ -1068,6 +1421,370 @@ P015,65,Male,""Persistent cough, Fatigue"",145/92,86,37.8,""Diabetes, Hypertensi
         color: #64748b;
     }
 
+    /* Bias Analysis Section */
+    .bias-analysis-section {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        margin-bottom: 24px;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .section-header h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0 0 4px 0;
+    }
+
+    .section-header p {
+        font-size: 13px;
+        color: #64748b;
+        margin: 0;
+    }
+
+    .analysis-results {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .analysis-card {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .analysis-card.wide {
+        grid-column: span 2;
+    }
+
+    .analysis-card h4 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0 0 16px 0;
+    }
+
+    .analysis-card h4 svg {
+        color: #0d9488;
+    }
+
+    /* Gender Metrics */
+    .gender-metrics {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .gender-item {
+        display: grid;
+        grid-template-columns: 32px 1fr 100px;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .gender-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .gender-item.male .gender-icon {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+    }
+
+    .gender-item.female .gender-icon {
+        background: rgba(236, 72, 153, 0.1);
+        color: #ec4899;
+    }
+
+    .gender-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .gender-label {
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .gender-value {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .sample-count {
+        font-size: 11px;
+        color: #94a3b8;
+    }
+
+    .accuracy-bar-mini {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .accuracy-bar-mini .accuracy-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #0d9488, #22c55e);
+        border-radius: 4px;
+    }
+
+    .disparity-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .disparity-info.low {
+        background: rgba(34, 197, 94, 0.1);
+    }
+
+    .disparity-info.high {
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .status-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .status-badge.good {
+        background: #22c55e;
+        color: white;
+    }
+
+    .status-badge.warning {
+        background: #f59e0b;
+        color: white;
+    }
+
+    /* Age Chart */
+    .age-chart {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .age-group-bar {
+        display: grid;
+        grid-template-columns: 50px 1fr 50px;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .bar-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: #475569;
+        text-align: right;
+    }
+
+    .stacked-bar {
+        height: 24px;
+        display: flex;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #e2e8f0;
+    }
+
+    .bar-segment {
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+
+    .bar-segment.low { background: #22c55e; }
+    .bar-segment.medium { background: #3b82f6; }
+    .bar-segment.high { background: #f59e0b; }
+    .bar-segment.critical { background: #dc2626; }
+
+    .bar-count {
+        font-size: 11px;
+        color: #94a3b8;
+    }
+
+    .chart-legend {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        padding-top: 8px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: #64748b;
+    }
+
+    .legend-item .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+    }
+
+    .legend-item .dot.low { background: #22c55e; }
+    .legend-item .dot.medium { background: #3b82f6; }
+    .legend-item .dot.high { background: #f59e0b; }
+    .legend-item .dot.critical { background: #dc2626; }
+
+    /* Error Rates Table */
+    .error-rates-table {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 12px;
+    }
+
+    .error-row {
+        display: grid;
+        grid-template-columns: 1fr 60px 60px;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+
+    .error-row.header {
+        background: #e2e8f0;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .error-row:not(.header) {
+        background: #f8fafc;
+    }
+
+    .error-row span {
+        text-align: center;
+    }
+
+    .error-row span:first-child {
+        text-align: left;
+    }
+
+    .error-row .warning {
+        color: #f59e0b;
+        font-weight: 600;
+    }
+
+    .error-row .danger {
+        color: #dc2626;
+        font-weight: 600;
+    }
+
+    .error-note {
+        font-size: 11px;
+        color: #94a3b8;
+        margin: 0;
+        padding: 8px;
+        background: rgba(245, 158, 11, 0.1);
+        border-radius: 6px;
+    }
+
+    /* Fairness Card */
+    .fairness-card {
+        text-align: center;
+    }
+
+    .fairness-display {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .fairness-gauge {
+        position: relative;
+        width: 120px;
+        height: 70px;
+    }
+
+    .gauge-svg {
+        width: 100%;
+        height: 100%;
+    }
+
+    .gauge-value {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 28px;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .fairness-rating {
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .fairness-rating.excellent { background: rgba(34, 197, 94, 0.1); color: #15803d; }
+    .fairness-rating.good { background: rgba(132, 204, 22, 0.1); color: #4d7c0f; }
+    .fairness-rating.fair { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+    .fairness-rating.needs\ improvement { background: rgba(249, 115, 22, 0.1); color: #c2410c; }
+    .fairness-rating.poor { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+
+    .analysis-meta {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        font-size: 11px;
+        color: #94a3b8;
+    }
+
+    .no-analysis {
+        text-align: center;
+        padding: 40px 20px;
+        color: #94a3b8;
+    }
+
+    .no-analysis svg {
+        margin-bottom: 12px;
+    }
+
+    .no-analysis p {
+        margin: 0;
+        font-size: 13px;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
     /* Responsive */
     @@media (max-width: 768px) {
         .action-grid {
@@ -1076,6 +1793,26 @@ P015,65,Male,""Persistent cough, Fatigue"",145/92,86,37.8,""Diabetes, Hypertensi
 
         .detail-value.path {
             max-width: 150px;
+        }
+        
+        .analysis-results {
+            grid-template-columns: 1fr;
+        }
+        
+        .analysis-card.wide {
+            grid-column: span 1;
+        }
+        
+        .section-header {
+            flex-direction: column;
+        }
+        
+        .gender-item {
+            grid-template-columns: 32px 1fr;
+        }
+        
+        .accuracy-bar-mini {
+            display: none;
         }
     }
 </style>

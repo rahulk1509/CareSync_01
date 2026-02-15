@@ -32,7 +32,7 @@
                 </div>
                 <h2>Patient Registered Successfully</h2>
                 <p>Risk Level: <strong class="risk-@_riskLevel.ToString().ToLower()">@_riskLevel</strong></p>
-                <p>Risk Score: <strong>@(_riskScore?.ToString("F1") ?? "N/A")%</strong></p>
+                <p>Risk Score: <strong>@(_riskScore.HasValue ? (_riskScore.Value * 100).ToString("F1") : "N/A")%</strong></p>
                 @if (!string.IsNullOrEmpty(_recommendedDepartment))
                 {
                     <p>Recommended Department: <strong>@_recommendedDepartment</strong></p>

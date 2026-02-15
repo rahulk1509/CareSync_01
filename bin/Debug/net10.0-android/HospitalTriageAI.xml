@@ -286,6 +286,26 @@
             Authentication service implementation with session persistence
             </summary>
         </member>
+        <member name="T:HospitalTriageAI.Services.BiasAnalysisResult">
+            <summary>
+            Results of bias/fairness analysis on training data
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.GenderMetrics">
+            <summary>
+            Accuracy and error metrics by gender
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.DemographicAccuracy">
+            <summary>
+            Metrics for a specific demographic group
+            </summary>
+        </member>
+        <member name="T:HospitalTriageAI.Services.AgeGroupMetrics">
+            <summary>
+            Risk distribution and metrics by age group
+            </summary>
+        </member>
         <member name="T:HospitalTriageAI.Services.DepartmentAnalysisService">
             <summary>
             Service for analyzing patient data and recommending appropriate hospital departments
@@ -597,6 +617,18 @@
         <member name="P:HospitalTriageAI.Services.IModelTrainingService.HasTrainedModel">
             <summary>
             Checks if a trained model exists
+            </summary>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IModelTrainingService.AnalyzeBiasAsync(System.IO.Stream)">
+            <summary>
+            Analyzes training data for bias and fairness metrics
+            </summary>
+            <param name="csvStream">Stream containing the CSV data to analyze</param>
+            <returns>Bias analysis results broken down by demographics</returns>
+        </member>
+        <member name="M:HospitalTriageAI.Services.IModelTrainingService.GetCachedBiasAnalysis">
+            <summary>
+            Gets cached bias analysis results if available
             </summary>
         </member>
         <member name="T:HospitalTriageAI.Services.TrainingResult">

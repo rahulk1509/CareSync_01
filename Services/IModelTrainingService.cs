@@ -22,6 +22,18 @@ public interface IModelTrainingService
     /// Checks if a trained model exists
     /// </summary>
     bool HasTrainedModel { get; }
+    
+    /// <summary>
+    /// Analyzes training data for bias and fairness metrics
+    /// </summary>
+    /// <param name="csvStream">Stream containing the CSV data to analyze</param>
+    /// <returns>Bias analysis results broken down by demographics</returns>
+    Task<BiasAnalysisResult> AnalyzeBiasAsync(Stream csvStream);
+    
+    /// <summary>
+    /// Gets cached bias analysis results if available
+    /// </summary>
+    BiasAnalysisResult? GetCachedBiasAnalysis();
 }
 
 /// <summary>

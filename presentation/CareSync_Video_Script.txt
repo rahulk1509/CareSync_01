@@ -1,0 +1,249 @@
+================================================================================
+                         CARESYNC - VIDEO PRESENTATION SCRIPT
+                              Team KludgeKings | 5 Minutes
+                    AI-Powered Smart Patient Triage Hackathon 2026
+================================================================================
+
+TOTAL DURATION: 5:00 minutes
+SPEAKER: Single presenter (on behalf of Team KludgeKings)
+FORMAT: Screen recording + voiceover / face-to-camera segments
+
+================================================================================
+                              SCENE BREAKDOWN
+================================================================================
+
+------------------------------------------------------------------------------
+SCENE 1: INTRODUCTION (0:00 - 0:30) [30 seconds]
+------------------------------------------------------------------------------
+VISUAL: Speaker on camera OR title card with team name + CareSync logo
+
+SCRIPT:
+"Hello everyone! I'm [Your Name], and I'm here representing Team KludgeKings.
+
+Today, I'm excited to present CareSync — our AI-powered smart patient triage 
+system built entirely with .NET MAUI for the Android platform.
+
+CareSync tackles one of healthcare's most pressing challenges: making emergency 
+department triage faster, fairer, and more consistent using machine learning.
+
+Let me show you what we've built."
+
+[TRANSITION: Fade to app home screen]
+
+------------------------------------------------------------------------------
+SCENE 2: THE PROBLEM WE'RE SOLVING (0:30 - 1:00) [30 seconds]
+------------------------------------------------------------------------------
+VISUAL: Statistics overlay OR simple graphics showing ED overcrowding
+
+SCRIPT:
+"Every year, over 145 million people visit emergency departments in the US alone. 
+The average wait time? Over 4 hours.
+
+The problem isn't just long waits — it's inconsistent triage decisions. 
+Studies show up to 30% variation in how patients are prioritized depending 
+on which staff member assesses them and when.
+
+This inconsistency can lead to delayed treatment for critical patients and 
+misallocation of hospital resources.
+
+CareSync solves this with AI-powered, consistent, and explainable triage."
+
+[TRANSITION: Cut to app demo]
+
+------------------------------------------------------------------------------
+SCENE 3: APP OVERVIEW & DESIGN (1:00 - 1:45) [45 seconds]
+------------------------------------------------------------------------------
+VISUAL: Screen recording - Navigate through app home screen and login
+
+SCRIPT:
+"CareSync is built with .NET 10 MAUI Blazor Hybrid — allowing us to create 
+a native Android app with a single C# codebase that also runs on Windows, 
+iOS, and macOS.
+
+[Show Home Screen]
+Our design follows a clean, healthcare-focused aesthetic with our signature 
+teal color scheme. The interface is intuitive — patients, doctors, and 
+administrators each have their own tailored portal.
+
+[Show Login Screen]
+We implemented secure authentication with BCrypt password hashing. 
+The app supports three user roles: Patients who can register and track 
+their status, Doctors who manage their assigned patients, and Administrators 
+who oversee the entire system.
+
+[Navigate to Patient Portal]
+Let me walk you through the core features."
+
+[TRANSITION: Smooth scroll to Patient Intake]
+
+------------------------------------------------------------------------------
+SCENE 4: PATIENT INTAKE FEATURE (1:45 - 2:15) [30 seconds]
+------------------------------------------------------------------------------
+VISUAL: Screen recording - Patient registration and intake form
+
+SCRIPT:
+"Starting with Patient Intake — this is where patients enter or staff record 
+the critical information.
+
+[Fill out form on screen]
+We capture demographics, vital signs including heart rate, blood pressure, 
+temperature, and oxygen saturation. Patients can describe their symptoms 
+and list any pre-existing conditions like diabetes or heart disease.
+
+[Show form validation]
+The form has real-time validation to ensure data quality. Once submitted, 
+the magic happens — our AI takes over."
+
+[TRANSITION: Navigate to Triage Assessment]
+
+------------------------------------------------------------------------------
+SCENE 5: AI TRIAGE ASSESSMENT (2:15 - 3:00) [45 seconds]
+------------------------------------------------------------------------------
+VISUAL: Screen recording - Triage assessment page showing AI prediction
+
+SCRIPT:
+"This is the heart of CareSync — our AI Triage Assessment.
+
+[Show prediction results]
+When we run the assessment, our ML.NET model analyzes 12 different features 
+from the patient data. It uses an SDCA Maximum Entropy algorithm — a 
+multi-class classifier that predicts risk levels: Emergency, Urgent, 
+Standard, or Non-Urgent.
+
+[Highlight the risk badge and confidence score]
+See this? The AI doesn't just give a label — it provides a confidence 
+percentage and most importantly, a human-readable explanation of WHY 
+it made that decision, citing actual patient values.
+
+[Show department recommendation]
+It also recommends the appropriate department — Cardiology, Pulmonology, 
+Neurology, Emergency, or General Medicine — based on symptom patterns 
+and vital sign analysis.
+
+[Show Rule-based vs ML indicator]
+We built a dual system: if the ML model isn't trained yet, clinical rules 
+kick in as a fallback. The app ALWAYS works."
+
+[TRANSITION: Navigate to AI Model Management]
+
+------------------------------------------------------------------------------
+SCENE 6: MODEL TRAINING & MANAGEMENT (3:00 - 3:30) [30 seconds]
+------------------------------------------------------------------------------
+VISUAL: Screen recording - AI Model Management page
+
+SCRIPT:
+"For administrators, we have the AI Model Management page.
+
+[Show CSV upload interface]
+Hospitals can train the model on their own patient data by uploading a 
+CSV file. The system automatically detects the format, transforms the 
+data, and trains with an 80/20 train-test split.
+
+[Show model metrics if visible]
+After training, we display accuracy metrics and the model version is 
+tracked with timestamps — important for regulatory compliance.
+
+[Show Bias Analysis section]
+And here's something we're particularly proud of — built-in Bias Analysis. 
+The system automatically checks for demographic fairness across gender 
+and age groups, calculating a Fairness Score. This ensures our AI 
+doesn't discriminate."
+
+[TRANSITION: Navigate to Admin Dashboard]
+
+------------------------------------------------------------------------------
+SCENE 7: ADMIN & DOCTOR FEATURES (3:30 - 4:00) [30 seconds]
+------------------------------------------------------------------------------
+VISUAL: Screen recording - Admin Dashboard and Doctor Management
+
+SCRIPT:
+"The Admin Dashboard gives a bird's-eye view of the entire system — 
+patient statistics, department load, and recent assessments.
+
+[Navigate to Doctor Management]
+Administrators can register doctors, set their specializations, and 
+manage availability. The system uses this for intelligent patient-to-doctor 
+assignment based on workload balancing.
+
+[Show doctor list]
+Doctors see their assigned patients, can access full medical histories, 
+review AI assessments, and generate PDF reports.
+
+[Show PDF generation if time]
+Speaking of reports — we integrated iTextSharp for professional PDF 
+export of patient records."
+
+[TRANSITION: Quick montage of different screens]
+
+------------------------------------------------------------------------------
+SCENE 8: TECHNICAL HIGHLIGHTS (4:00 - 4:30) [30 seconds]
+------------------------------------------------------------------------------
+VISUAL: Architecture diagram from presentation OR code snippets overlay
+
+SCRIPT:
+"Let me quickly highlight our technical stack:
+
+- .NET 10 MAUI Blazor Hybrid for cross-platform native apps
+- ML.NET 3.0 for on-device machine learning — no cloud required
+- SQLite with Entity Framework Core for local data persistence
+- Four-layer architecture: Presentation, Services, AI/ML, and Data
+
+Everything runs locally on the device. Patient data never leaves the 
+phone — addressing privacy concerns that are critical in healthcare.
+
+The entire app is a single codebase that compiles to Android, iOS, 
+Windows, and macOS."
+
+[TRANSITION: Return to camera or title card]
+
+------------------------------------------------------------------------------
+SCENE 9: CONCLUSION & FUTURE VISION (4:30 - 5:00) [30 seconds]
+------------------------------------------------------------------------------
+VISUAL: Speaker on camera OR closing slide with contact info
+
+SCRIPT:
+"To summarize, CareSync brings AI-powered consistency to hospital triage, 
+with built-in fairness monitoring, explainable predictions, and complete 
+offline functionality.
+
+For the future, we envision adding NLP for natural language symptom input, 
+integration with hospital EHR systems via HL7 FHIR, and even image-based 
+diagnosis.
+
+We're Team KludgeKings, and this is CareSync — because every patient 
+deserves fair, fast, and intelligent care.
+
+Thank you for watching!"
+
+[END CARD: Team KludgeKings | CareSync | 2026]
+
+================================================================================
+                              PRODUCTION NOTES
+================================================================================
+
+SCREEN RECORDING TIPS:
+- Use a clean Android emulator or physical device
+- Pre-populate sample patient data for smooth demo
+- Practice navigation to avoid fumbling
+- Keep mouse movements smooth and deliberate
+
+AUDIO:
+- Record in a quiet environment
+- Speak clearly at moderate pace
+- Pause briefly between sections
+
+EDITING SUGGESTIONS:
+- Add subtle zoom effects on important UI elements
+- Use lower-third text for feature names
+- Include background music at low volume (royalty-free)
+- Add transition effects between scenes
+
+TIMING BUFFER:
+- Script is tight at 5 minutes
+- Speak naturally, not rushed
+- If running long, trim Scene 7 (Admin features)
+- If running short, expand on Bias Analysis importance
+
+================================================================================
+                                 END OF SCRIPT
+================================================================================
