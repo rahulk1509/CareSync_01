@@ -43,6 +43,13 @@ public class Patient
     
     public float? RiskPercentage { get; set; }
     
+    // Previous EMR Report
+    public byte[]? PreviousEmrReport { get; set; }
+    
+    public string? PreviousEmrFileName { get; set; }
+    
+    public DateTime? EmrUploadedAt { get; set; }
+    
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     
     public DateTime? LastUpdated { get; set; }

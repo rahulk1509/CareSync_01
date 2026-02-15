@@ -193,6 +193,69 @@ else
                     </div>
                 </section>
             }
+
+            <!-- Previous EMR Report -->
+            @if (_patient.PreviousEmrReport != null && _patient.PreviousEmrReport.Length > 0)
+            {
+                <section class="report-section emr-section">
+                    <h2>Previous Medical Records</h2>
+                    <div class="emr-card">
+                        <div class="emr-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <line x1="10" y1="9" x2="8" y2="9"/>
+                            </svg>
+                        </div>
+                        <div class="emr-info">
+                            <span class="emr-filename">@(_patient.PreviousEmrFileName ?? "EMR_Report.pdf")</span>
+                            <span class="emr-meta">
+                                Uploaded: @(_patient.EmrUploadedAt?.ToString("MMM dd, yyyy HH:mm") ?? "N/A")
+                                • @FormatFileSize(_patient.PreviousEmrReport.Length)
+                            </span>
+                        </div>
+                        <button class="btn btn-emr-download" @onclick="ViewEmrReport" disabled="@_viewingEmr">
+                            @if (_viewingEmr)
+                            {
+                                <span>Opening...</span>
+                            }
+                            else
+                            {
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <span>View PDF</span>
+                            }
+                        </button>
+                        <button class="btn btn-emr-download btn-secondary" @onclick="DownloadEmrReport" disabled="@_downloadingEmr">
+                            @if (_downloadingEmr)
+                            {
+                                <span>Downloading...</span>
+                            }
+                            else
+                            {
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                <span>Download</span>
+                            }
+                        </button>
+                    </div>
+                    <p class="emr-note">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                        </svg>
+                        This document contains the patient's previous medical history uploaded during registration.
+                    </p>
+                </section>
+            }
         </div>
     </div>
 
@@ -211,6 +274,8 @@ else
     private Doctor? _assignedDoctor;
     private bool _loading = true;
     private bool _generating = false;
+    private bool _viewingEmr = false;
+    private bool _downloadingEmr = false;
     private string _message = "";
     private bool _isError = false;
 
@@ -261,6 +326,56 @@ else
         {
             _generating = false;
         }
+    }
+
+    private async Task ViewEmrReport()
+    {
+        if (_patient?.PreviousEmrReport == null) return;
+        _viewingEmr = true;
+        try
+        {
+            var base64 = Convert.ToBase64String(_patient.PreviousEmrReport);
+            await JSRuntime.InvokeVoidAsync("openPdfInNewTab", base64);
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error opening EMR: {ex.Message}";
+            _isError = true;
+        }
+        finally
+        {
+            _viewingEmr = false;
+        }
+    }
+
+    private async Task DownloadEmrReport()
+    {
+        if (_patient?.PreviousEmrReport == null) return;
+        _downloadingEmr = true;
+        try
+        {
+            var fileName = _patient.PreviousEmrFileName ?? $"EMR_{_patient.FullName.Replace(" ", "_")}.pdf";
+            var base64 = Convert.ToBase64String(_patient.PreviousEmrReport);
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBase64", fileName, base64, "application/pdf");
+            _message = "EMR downloaded successfully!";
+            _isError = false;
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error downloading EMR: {ex.Message}";
+            _isError = true;
+        }
+        finally
+        {
+            _downloadingEmr = false;
+        }
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024.0):F2} MB";
     }
 
     private string GetRiskClass(TriageLevel level) => level switch
@@ -357,9 +472,24 @@ else
     .doctor-info strong { display: block; }
     .doctor-info span { font-size: 0.8125rem; color: var(--gray-500); }
 
+    /* EMR Section Styles */
+    .emr-section h2 { color: var(--primary-dark); }
+    .emr-card { display: flex; align-items: center; gap: var(--space-3); background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: var(--space-4); flex-wrap: wrap; }
+    .emr-icon { width: 48px; height: 48px; background: #fef2f2; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: #dc2626; flex-shrink: 0; }
+    .emr-info { flex: 1; min-width: 150px; }
+    .emr-filename { display: block; font-weight: 600; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+    .emr-meta { display: block; font-size: 0.75rem; color: var(--gray-500); margin-top: 2px; }
+    .btn-emr-download { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); font-size: 0.875rem; background: var(--primary); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s; }
+    .btn-emr-download:hover { background: var(--primary-dark); }
+    .btn-emr-download:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-emr-download.btn-secondary { background: var(--gray-600); }
+    .btn-emr-download.btn-secondary:hover { background: var(--gray-700); }
+    .emr-note { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); font-size: 0.8125rem; color: var(--gray-500); }
+    .emr-note svg { flex-shrink: 0; }
+
     .message-toast { position: fixed; bottom: var(--space-6); right: var(--space-6); padding: var(--space-4) var(--space-6); border-radius: var(--radius-md); font-weight: 500; z-index: 1000; }
     .message-toast.success { background: #22C55E; color: white; }
     .message-toast.error { background: #DC2626; color: white; }
 
-    @@media (max-width: 768px) { .report-grid { grid-template-columns: 1fr; } .vitals-grid { grid-template-columns: repeat(2, 1fr); } .page-header { flex-direction: column; gap: var(--space-4); } }
+    @@media (max-width: 768px) { .report-grid { grid-template-columns: 1fr; } .vitals-grid { grid-template-columns: repeat(2, 1fr); } .page-header { flex-direction: column; gap: var(--space-4); } .emr-card { flex-direction: column; align-items: flex-start; } .emr-filename { max-width: 100%; } }
 </style>

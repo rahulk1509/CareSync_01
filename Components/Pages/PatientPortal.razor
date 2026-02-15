@@ -1,32 +1,279 @@
 @page "/patient"
+@using HospitalTriageAI.Models
+@using HospitalTriageAI.Models.Enums
+@using Microsoft.AspNetCore.Components.Forms
 @inject NavigationManager Navigation
-@inject HospitalTriageAI.Services.IAuthService AuthService
+@inject HospitalTriageAI.Services.IPatientService PatientService
+@inject HospitalTriageAI.Services.ITriageService TriageService
 
-<div class="patient-portal">
-    @if (_loading)
-    {
-        <div class="loading-state">
-            <div class="spinner-lg"></div>
-            <p>Loading...</p>
+<div class="patient-registration">
+    <div class="portal-header">
+        <div class="header-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="8.5" cy="7" r="4"/>
+                <line x1="20" y1="8" x2="20" y2="14"/>
+                <line x1="23" y1="11" x2="17" y2="11"/>
+            </svg>
         </div>
-    }
-    else if (!AuthService.IsAuthenticated)
-    {
-        <!-- Patient Login Form -->
-        <div class="login-container">
-            <div class="portal-header">
-                <h1>Patient Portal</h1>
-                <p class="subtitle">Sign in to access your health records and triage services</p>
-            </div>
+        <h1>Patient Registration</h1>
+        <p class="subtitle">Enter patient details and vitals for triage assessment</p>
+    </div>
 
-            <div class="login-card">
-                <div class="form-group">
-                    <label class="form-label">Email Address</label>
-                    <input type="email" @bind="_email" class="form-input" placeholder="Enter your email" />
+    <div class="registration-card">
+        @if (_registrationComplete)
+        {
+            <div class="success-state">
+                <div class="success-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Password</label>
-                    <input type="password" @bind="_password" class="form-input" placeholder="Enter your password" />
+                <h2>Patient Registered Successfully</h2>
+                <p>Risk Level: <strong class="risk-@_riskLevel.ToString().ToLower()">@_riskLevel</strong></p>
+                <p>Risk Score: <strong>@(_riskScore?.ToString("F1") ?? "N/A")%</strong></p>
+                @if (!string.IsNullOrEmpty(_recommendedDepartment))
+                {
+                    <p>Recommended Department: <strong>@_recommendedDepartment</strong></p>
+                }
+                @if (_emrWasUploaded)
+                {
+                    <p class="emr-uploaded-badge">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Previous EMR Report attached for analysis
+                    </p>
+                }
+                <button class="btn btn-primary" @onclick="ResetForm">
+                    Register Another Patient
+                </button>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="_formModel" OnValidSubmit="HandleRegister">
+                <DataAnnotationsValidator />
+
+                <!-- Patient Information Section -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Patient Information
+                    </h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Full Name *</label>
+                            <input type="text" @bind="_formModel.FullName" class="form-input" placeholder="Enter patient's full name" required />
+                            <ValidationMessage For="@(() => _formModel.FullName)" />
+                        </div>
+                    </div>
+
+                    <div class="form-row two-columns">
+                        <div class="form-group">
+                            <label class="form-label">Age *</label>
+                            <input type="number" @bind="_formModel.Age" class="form-input" placeholder="Years" min="0" max="150" required />
+                            <ValidationMessage For="@(() => _formModel.Age)" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Gender *</label>
+                            <select @bind="_formModel.Gender" class="form-input" required>
+                                <option value="">Select gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <ValidationMessage For="@(() => _formModel.Gender)" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vital Signs Section -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                        Vital Signs
+                    </h3>
+
+                    <div class="form-row three-columns">
+                        <div class="form-group">
+                            <label class="form-label">Heart Rate (bpm) *</label>
+                            <input type="number" @bind="_formModel.HeartRate" class="form-input" placeholder="60-100" min="0" max="300" step="1" required />
+                            <span class="form-hint">Normal: 60-100</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Systolic BP (mmHg) *</label>
+                            <input type="number" @bind="_formModel.SystolicBP" class="form-input" placeholder="90-120" min="0" max="300" step="1" required />
+                            <span class="form-hint">Normal: 90-120</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Diastolic BP (mmHg) *</label>
+                            <input type="number" @bind="_formModel.DiastolicBP" class="form-input" placeholder="60-80" min="0" max="200" step="1" required />
+                            <span class="form-hint">Normal: 60-80</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row three-columns">
+                        <div class="form-group">
+                            <label class="form-label">Temperature (°C) *</label>
+                            <input type="number" @bind="_formModel.Temperature" class="form-input" placeholder="36.5" min="30" max="45" step="0.1" required />
+                            <span class="form-hint">Normal: 36.1-37.2</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Respiratory Rate (/min) *</label>
+                            <input type="number" @bind="_formModel.RespiratoryRate" class="form-input" placeholder="12-20" min="0" max="60" step="1" required />
+                            <span class="form-hint">Normal: 12-20</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">O2 Saturation (%) *</label>
+                            <input type="number" @bind="_formModel.O2Saturation" class="form-input" placeholder="95-100" min="0" max="100" step="1" required />
+                            <span class="form-hint">Normal: 95-100</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Pain Level: @_formModel.PainLevel / 10</label>
+                        <div class="slider-container">
+                            <span class="slider-label">0</span>
+                            <input type="range" @bind="_formModel.PainLevel" @bind:event="oninput" class="pain-slider" min="0" max="10" step="1" />
+                            <span class="slider-label">10</span>
+                        </div>
+                        <div class="pain-indicator pain-level-@_formModel.PainLevel">
+                            @GetPainDescription(_formModel.PainLevel)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Symptoms Section -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 11l3 3L22 4"/>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                        Symptoms Assessment
+                    </h3>
+
+                    <div class="form-row two-columns">
+                        <div class="form-group">
+                            <label class="form-label">Chest Pain</label>
+                            <select @bind="_formModel.ChestPain" class="form-input">
+                                @foreach (var severity in Enum.GetValues<SymptomSeverity>())
+                                {
+                                    <option value="@severity">@severity</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Shortness of Breath</label>
+                            <select @bind="_formModel.ShortnessOfBreath" class="form-input">
+                                @foreach (var severity in Enum.GetValues<SymptomSeverity>())
+                                {
+                                    <option value="@severity">@severity</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row two-columns">
+                        <div class="form-group">
+                            <label class="form-label">Altered Consciousness</label>
+                            <select @bind="_formModel.AlteredConsciousness" class="form-input">
+                                @foreach (var severity in Enum.GetValues<SymptomSeverity>())
+                                {
+                                    <option value="@severity">@severity</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Bleeding</label>
+                            <select @bind="_formModel.Bleeding" class="form-input">
+                                @foreach (var severity in Enum.GetValues<SymptomSeverity>())
+                                {
+                                    <option value="@severity">@severity</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group" style="max-width: 50%;">
+                            <label class="form-label">Fever</label>
+                            <select @bind="_formModel.Fever" class="form-input">
+                                @foreach (var severity in Enum.GetValues<SymptomSeverity>())
+                                {
+                                    <option value="@severity">@severity</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Previous EMR Report Section -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <line x1="10" y1="9" x2="8" y2="9"/>
+                        </svg>
+                        Previous EMR Report (Optional)
+                    </h3>
+                    <p class="section-description">Upload any previous medical records for comprehensive analysis with current symptoms.</p>
+
+                    <div class="emr-upload-container">
+                        <label class="upload-area @(_emrFileName != null ? "has-file" : "")" for="emrFileInput">
+                            @if (_emrFileName == null)
+                            {
+                                <div class="upload-icon">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                </div>
+                                <p class="upload-text">Click to upload or drag and drop</p>
+                                <p class="upload-hint">PDF files only (max 10MB)</p>
+                            }
+                            else
+                            {
+                                <div class="file-preview">
+                                    <div class="file-icon">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                        </svg>
+                                    </div>
+                                    <div class="file-info">
+                                        <span class="file-name">@_emrFileName</span>
+                                        <span class="file-size">@FormatFileSize(_emrFileSize)</span>
+                                    </div>
+                                    <button type="button" class="btn-remove-file" @onclick="RemoveEmrFile" @onclick:stopPropagation="true">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"/>
+                                            <line x1="6" y1="6" x2="18" y2="18"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            }
+                        </label>
+                        <InputFile @ref="_inputFileRef" OnChange="HandleEmrFileSelected" accept=".pdf" style="display: none;" id="emrFileInput" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_emrUploadError))
+                    {
+                        <div class="alert alert-warning" style="margin-top: var(--space-3);">@_emrUploadError</div>
+                    }
                 </div>
 
                 @if (!string.IsNullOrEmpty(_error))
@@ -34,171 +281,252 @@
                     <div class="alert alert-danger">@_error</div>
                 }
 
-                <button class="btn btn-primary btn-full" @onclick="HandleLogin" disabled="@_submitting">
+                <button type="submit" class="btn btn-primary btn-full btn-register" disabled="@_submitting">
                     @if (_submitting)
                     {
                         <span class="spinner"></span>
-                        <span>Signing in...</span>
+                        <span>Registering Patient...</span>
                     }
                     else
                     {
-                        <span>Sign In</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="8.5" cy="7" r="4"/>
+                            <line x1="20" y1="8" x2="20" y2="14"/>
+                            <line x1="23" y1="11" x2="17" y2="11"/>
+                        </svg>
+                        <span>Register Patient</span>
                     }
                 </button>
-
-                <div class="login-footer">
-                    <p>Don't have an account? <a href="/signup">Create Account</a></p>
-                </div>
-            </div>
-        </div>
-    }
-    else
-    {
-        <!-- Patient Portal Content -->
-        <div class="portal-header">
-            <div class="header-row">
-                <div>
-                    <h1>Patient Portal</h1>
-                    <p class="subtitle">Welcome back, @AuthService.CurrentUser?.FullName</p>
-                </div>
-                <button class="btn btn-outline" @onclick="HandleLogout">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                        <polyline points="16 17 21 12 16 7"/>
-                        <line x1="21" y1="12" x2="9" y2="12"/>
-                    </svg>
-                    Logout
-                </button>
-            </div>
-        </div>
-
-        <div class="portal-grid">
-            <div class="portal-card" @onclick="@(() => Navigation.NavigateTo("/intake"))">
-                <div class="card-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                        <line x1="10" y1="9" x2="8" y2="9"/>
-                    </svg>
-                </div>
-                <h3>New Triage Assessment</h3>
-                <p>Start a new symptom assessment and get AI-powered triage recommendations</p>
-            </div>
-
-            <div class="portal-card" @onclick="@(() => Navigation.NavigateTo("/triage"))">
-                <div class="card-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                    </svg>
-                </div>
-                <h3>Triage Results</h3>
-                <p>View your assessment results and recommended care level</p>
-            </div>
-
-            <div class="portal-card" @onclick="@(() => Navigation.NavigateTo("/about"))">
-                <div class="card-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="16" x2="12" y2="12"/>
-                        <line x1="12" y1="8" x2="12" y2="8"/>
-                    </svg>
-                </div>
-                <h3>About CareSync</h3>
-                <p>Learn how our AI triage system works</p>
-            </div>
-        </div>
-    }
+            </EditForm>
+        }
+    </div>
 </div>
 
 @code {
-    private string _email = "";
-    private string _password = "";
+    private PatientRegistrationModel _formModel = new();
     private string? _error;
     private bool _submitting = false;
-    private bool _loading = true;
+    private bool _registrationComplete = false;
+    private TriageLevel _riskLevel = TriageLevel.Unassessed;
+    private float? _riskScore;
+    private string? _recommendedDepartment;
+    private bool _emrWasUploaded = false;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    // EMR Upload fields
+    private InputFile? _inputFileRef;
+    private byte[]? _emrFileData;
+    private string? _emrFileName;
+    private long _emrFileSize;
+    private string? _emrUploadError;
+    private const long MaxFileSize = 10 * 1024 * 1024; // 10MB
+
+    private async Task HandleEmrFileSelected(InputFileChangeEventArgs e)
     {
-        if (firstRender)
+        _emrUploadError = null;
+        var file = e.File;
+
+        if (file == null)
+            return;
+
+        // Validate file type
+        if (!file.ContentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase) &&
+            !file.Name.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
         {
-            await AuthService.TryRestoreSessionAsync();
-            _loading = false;
-            StateHasChanged();
+            _emrUploadError = "Please upload a PDF file only.";
+            return;
+        }
+
+        // Validate file size
+        if (file.Size > MaxFileSize)
+        {
+            _emrUploadError = $"File size exceeds the maximum limit of 10MB. Your file: {FormatFileSize(file.Size)}";
+            return;
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream(MaxFileSize);
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            _emrFileData = memoryStream.ToArray();
+            _emrFileName = file.Name;
+            _emrFileSize = file.Size;
+        }
+        catch (Exception ex)
+        {
+            _emrUploadError = $"Error reading file: {ex.Message}";
+            _emrFileData = null;
+            _emrFileName = null;
         }
     }
 
-    private async Task HandleLogin()
+    private void RemoveEmrFile()
+    {
+        _emrFileData = null;
+        _emrFileName = null;
+        _emrFileSize = 0;
+        _emrUploadError = null;
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        return $"{bytes / (1024.0 * 1024.0):F2} MB";
+    }
+
+    private async Task HandleRegister()
     {
         _submitting = true;
         _error = null;
 
-        var result = await AuthService.LoginAsync(_email, _password);
-        if (!result.Success)
+        try
         {
-            _error = result.Message;
-        }
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(_formModel.FullName))
+            {
+                _error = "Full name is required.";
+                _submitting = false;
+                return;
+            }
 
-        _submitting = false;
+            if (_formModel.Age <= 0)
+            {
+                _error = "Please enter a valid age.";
+                _submitting = false;
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_formModel.Gender))
+            {
+                _error = "Please select a gender.";
+                _submitting = false;
+                return;
+            }
+
+            // Parse full name into first and last name
+            var nameParts = _formModel.FullName.Trim().Split(' ', 2);
+            var firstName = nameParts[0];
+            var lastName = nameParts.Length > 1 ? nameParts[1] : "";
+
+            // Create Patient entity
+            var patient = new Patient
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                DateOfBirth = DateTime.Now.AddYears(-_formModel.Age),
+                Gender = _formModel.Gender,
+                CreatedAt = DateTime.Now,
+                Status = PatientStatus.Waiting,
+                // Include previous EMR report if uploaded
+                PreviousEmrReport = _emrFileData,
+                PreviousEmrFileName = _emrFileName,
+                EmrUploadedAt = _emrFileData != null ? DateTime.Now : null
+            };
+
+            // Save patient to database
+            var savedPatient = await PatientService.CreatePatientAsync(patient);
+
+            // Create TriageAssessment with vitals and symptoms
+            var assessment = new HospitalTriageAI.Models.TriageAssessment
+            {
+                PatientId = savedPatient.Id,
+                HeartRate = _formModel.HeartRate,
+                BloodPressureSystolic = _formModel.SystolicBP,
+                BloodPressureDiastolic = _formModel.DiastolicBP,
+                Temperature = _formModel.Temperature,
+                RespiratoryRate = _formModel.RespiratoryRate,
+                OxygenSaturation = _formModel.O2Saturation,
+                PainLevel = _formModel.PainLevel,
+                ChestPain = _formModel.ChestPain,
+                ShortnessOfBreath = _formModel.ShortnessOfBreath,
+                AlteredConsciousness = _formModel.AlteredConsciousness,
+                Bleeding = _formModel.Bleeding,
+                Fever = _formModel.Fever,
+                AssessedAt = DateTime.Now,
+                AssessedBy = "Nurse"
+            };
+
+            // Trigger risk calculation via TriageService
+            var riskPrediction = await TriageService.AssessPatientAsync(savedPatient, assessment);
+
+            // Store results for display
+            _riskLevel = riskPrediction.PredictedLevel;
+            _riskScore = riskPrediction.RiskScore;
+            _recommendedDepartment = savedPatient.RecommendedDepartment;
+            _emrWasUploaded = _emrFileData != null;
+
+            _registrationComplete = true;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Registration failed: {ex.Message}";
+        }
+        finally
+        {
+            _submitting = false;
+        }
     }
 
-    private async Task HandleLogout()
+    private void ResetForm()
     {
-        await AuthService.LogoutAsync();
+        _formModel = new PatientRegistrationModel();
+        _error = null;
+        _registrationComplete = false;
+        _riskLevel = TriageLevel.Unassessed;
+        _riskScore = null;
+        _recommendedDepartment = null;
+        _emrWasUploaded = false;
+        // Clear EMR upload
+        _emrFileData = null;
+        _emrFileName = null;
+        _emrFileSize = 0;
+        _emrUploadError = null;
+    }
+
+    private string GetPainDescription(int level) => level switch
+    {
+        0 => "No Pain",
+        1 or 2 => "Mild Pain",
+        3 or 4 => "Moderate Pain",
+        5 or 6 => "Moderately Severe",
+        7 or 8 => "Severe Pain",
+        9 or 10 => "Worst Possible Pain",
+        _ => "Unknown"
+    };
+
+    /// <summary>
+    /// ViewModel for patient registration form
+    /// </summary>
+    public class PatientRegistrationModel
+    {
+        public string FullName { get; set; } = string.Empty;
+        public int Age { get; set; }
+        public string Gender { get; set; } = string.Empty;
+
+        // Vital Signs
+        public float HeartRate { get; set; } = 80;
+        public float SystolicBP { get; set; } = 120;
+        public float DiastolicBP { get; set; } = 80;
+        public float Temperature { get; set; } = 36.5f;
+        public float RespiratoryRate { get; set; } = 16;
+        public float O2Saturation { get; set; } = 98;
+        public int PainLevel { get; set; } = 0;
+
+        // Symptoms
+        public SymptomSeverity ChestPain { get; set; } = SymptomSeverity.None;
+        public SymptomSeverity ShortnessOfBreath { get; set; } = SymptomSeverity.None;
+        public SymptomSeverity AlteredConsciousness { get; set; } = SymptomSeverity.None;
+        public SymptomSeverity Bleeding { get; set; } = SymptomSeverity.None;
+        public SymptomSeverity Fever { get; set; } = SymptomSeverity.None;
     }
 }
 
 <style>
-    .patient-portal {
-        max-width: 900px;
+    .patient-registration {
+        max-width: 800px;
         margin: 0 auto;
-    }
-
-    .loading-state {
-        text-align: center;
-        padding: var(--space-12);
-    }
-
-    .login-container {
-        max-width: 400px;
-        margin: 0 auto;
-    }
-
-    .login-card {
-        background: var(--white);
-        border: 2px solid var(--gray-200);
-        border-radius: var(--radius-lg);
-        padding: var(--space-6);
-    }
-
-    .login-footer {
-        text-align: center;
-        margin-top: var(--space-4);
-        padding-top: var(--space-4);
-        border-top: 1px solid var(--gray-200);
-    }
-
-    .login-footer p {
-        margin: 0;
-        color: var(--gray-500);
-        font-size: 0.875rem;
-    }
-
-    .login-footer a {
-        color: var(--primary);
-        font-weight: 500;
-    }
-
-    .btn-full {
-        width: 100%;
-        margin-top: var(--space-4);
-    }
-
-    .header-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
     }
 
     .portal-header {
@@ -206,9 +534,16 @@
         margin-bottom: var(--space-8);
     }
 
-    .header-row .portal-header,
-    .header-row > div {
-        text-align: left;
+    .header-icon {
+        width: 72px;
+        height: 72px;
+        background: var(--primary-bg);
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--space-4);
+        color: var(--primary);
     }
 
     .portal-header h1 {
@@ -222,48 +557,349 @@
         font-size: 1.125rem;
     }
 
-    .portal-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: var(--space-6);
-    }
-
-    .portal-card {
+    .registration-card {
         background: var(--white);
         border: 2px solid var(--gray-200);
         border-radius: var(--radius-lg);
         padding: var(--space-6);
+    }
+
+    .form-section {
+        margin-bottom: var(--space-6);
+        padding-bottom: var(--space-6);
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .form-section:last-of-type {
+        border-bottom: none;
+        margin-bottom: var(--space-4);
+        padding-bottom: 0;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: 1.125rem;
+        color: var(--gray-900);
+        margin-bottom: var(--space-4);
+    }
+
+    .section-title svg {
+        color: var(--primary);
+    }
+
+    .form-row {
+        margin-bottom: var(--space-4);
+    }
+
+    .form-row.two-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-4);
+    }
+
+    .form-row.three-columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: var(--space-4);
+    }
+
+    .form-hint {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--gray-400);
+        margin-top: var(--space-1);
+    }
+
+    .slider-container {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        margin-top: var(--space-2);
+    }
+
+    .slider-label {
+        font-size: 0.875rem;
+        color: var(--gray-500);
+        font-weight: 500;
+        min-width: 20px;
+        text-align: center;
+    }
+
+    .pain-slider {
+        flex: 1;
+        height: 8px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: linear-gradient(to right, #22c55e 0%, #eab308 50%, #ef4444 100%);
+        border-radius: 4px;
+        outline: none;
+    }
+
+    .pain-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: var(--white);
+        border: 2px solid var(--primary);
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+
+    .pain-slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: var(--white);
+        border: 2px solid var(--primary);
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+
+    .pain-indicator {
+        text-align: center;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: var(--space-2);
+        border-radius: var(--radius-sm);
+        margin-top: var(--space-2);
+    }
+
+    .pain-level-0, .pain-level-1, .pain-level-2 {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .pain-level-3, .pain-level-4 {
+        background: #fef9c3;
+        color: #854d0e;
+    }
+
+    .pain-level-5, .pain-level-6 {
+        background: #fed7aa;
+        color: #9a3412;
+    }
+
+    .pain-level-7, .pain-level-8 {
+        background: #fecaca;
+        color: #b91c1c;
+    }
+
+    .pain-level-9, .pain-level-10 {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .btn-full {
+        width: 100%;
+    }
+
+    .btn-register {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        font-size: 1rem;
+        padding: var(--space-4) var(--space-6);
+        margin-top: var(--space-4);
+    }
+
+    .success-state {
+        text-align: center;
+        padding: var(--space-8) var(--space-4);
+    }
+
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        background: #dcfce7;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto var(--space-4);
+        color: #166534;
+    }
+
+    .success-state h2 {
+        color: var(--gray-900);
+        margin-bottom: var(--space-4);
+    }
+
+    .success-state p {
+        color: var(--gray-600);
+        margin-bottom: var(--space-2);
+    }
+
+    .success-state .btn {
+        margin-top: var(--space-6);
+    }
+
+    .emr-uploaded-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        background: var(--primary-bg);
+        color: var(--primary);
+        padding: var(--space-2) var(--space-3);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-top: var(--space-2);
+    }
+
+    .risk-emergency, .risk-urgent {
+        color: #dc2626;
+    }
+
+    .risk-standard {
+        color: #f59e0b;
+    }
+
+    .risk-nonurgent {
+        color: #22c55e;
+    }
+
+    .alert {
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-4);
+    }
+
+    .alert-danger {
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+    }
+
+    .alert-warning {
+        background: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fcd34d;
+    }
+
+    /* EMR Upload Styles */
+    .section-description {
+        color: var(--gray-500);
+        font-size: 0.875rem;
+        margin-bottom: var(--space-4);
+    }
+
+    .emr-upload-container {
+        position: relative;
+    }
+
+    .upload-area {
+        display: block;
+        border: 2px dashed var(--gray-300);
+        border-radius: var(--radius-lg);
+        padding: var(--space-8) var(--space-4);
+        text-align: center;
         cursor: pointer;
         transition: all 0.2s;
+        background: var(--gray-50);
     }
 
-    .portal-card:hover {
+    .upload-area:hover {
         border-color: var(--primary);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
+        background: var(--primary-bg);
     }
 
-    .card-icon {
-        width: 56px;
-        height: 56px;
+    .upload-area.has-file {
+        border-style: solid;
+        border-color: var(--primary);
         background: var(--primary-bg);
+        padding: var(--space-4);
+    }
+
+    .upload-icon {
+        color: var(--gray-400);
+        margin-bottom: var(--space-3);
+    }
+
+    .upload-area:hover .upload-icon {
+        color: var(--primary);
+    }
+
+    .upload-text {
+        color: var(--gray-700);
+        font-weight: 500;
+        margin-bottom: var(--space-1);
+    }
+
+    .upload-hint {
+        color: var(--gray-400);
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .file-preview {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .file-icon {
+        width: 48px;
+        height: 48px;
+        background: var(--white);
         border-radius: var(--radius-md);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: var(--space-4);
-        color: var(--primary);
+        color: #dc2626;
+        flex-shrink: 0;
     }
 
-    .portal-card h3 {
-        font-size: 1.125rem;
+    .file-info {
+        flex: 1;
+        text-align: left;
+        min-width: 0;
+    }
+
+    .file-name {
+        display: block;
+        font-weight: 500;
         color: var(--gray-900);
-        margin-bottom: var(--space-2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    .portal-card p {
-        color: var(--gray-500);
+    .file-size {
+        display: block;
         font-size: 0.875rem;
-        margin: 0;
+        color: var(--gray-500);
+    }
+
+    .btn-remove-file {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: var(--white);
+        color: var(--gray-500);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .btn-remove-file:hover {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    /* Responsive */
+    @@media (max-width: 640px) {
+        .form-row.two-columns,
+        .form-row.three-columns {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
