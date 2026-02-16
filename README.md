@@ -27,7 +27,6 @@
 - [AI/ML Features](#aiml-features)
 - [Key Components](#key-components)
 - [Contributing](#contributing)
-- [License](#license)
 
 ---
 
@@ -442,11 +441,6 @@ We welcome contributions! Please follow these steps:
 - Update documentation as needed
 - Ensure cross-platform compatibility
 
----
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
