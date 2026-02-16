@@ -26,7 +26,6 @@
 - [User Roles](#user-roles)
 - [AI/ML Features](#aiml-features)
 - [Key Components](#key-components)
-- [Screenshots](#screenshots)
 - [Contributing](#contributing)
 - [License](#license)
 
