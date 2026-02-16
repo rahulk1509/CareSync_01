@@ -426,20 +426,6 @@ public class RiskPrediction
 
 ---
 
-## Screenshots
-
-*Coming soon - Add screenshots of key features here*
-
-| Home Page | Patient Intake | Triage Assessment |
-|-----------|----------------|-------------------|
-| ![Home](screenshots/home.png) | ![Intake](screenshots/intake.png) | ![Triage](screenshots/triage.png) |
-
-| Admin Dashboard | Doctor Management | AI Model Training |
-|-----------------|-------------------|-------------------|
-| ![Dashboard](screenshots/dashboard.png) | ![Doctors](screenshots/doctors.png) | ![AI](screenshots/ai.png) |
-
----
-
 ## Contributing
 
 We welcome contributions! Please follow these steps:
